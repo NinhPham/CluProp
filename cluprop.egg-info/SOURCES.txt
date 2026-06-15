@@ -1,0 +1,11 @@
+setup.py
+cluprop.egg-info/PKG-INFO
+cluprop.egg-info/SOURCES.txt
+cluprop.egg-info/dependency_links.txt
+cluprop.egg-info/not-zip-safe
+cluprop.egg-info/requires.txt
+cluprop.egg-info/top_level.txt
+python/python_wrapper.cpp
+src/cluprop.cpp
+src/utilities.cpp
+test/test_speed.py

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="ba0df4f8-c1b0-4d59-9375-4b8ca88ea260" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../build/temp.linux-x86_64-cpython-39/python/python_wrapper.o" beforeDir="false" afterPath="$PROJECT_DIR$/../build/temp.linux-x86_64-cpython-39/python/python_wrapper.o" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../build/temp.linux-x86_64-cpython-39/src/Utilities.o" beforeDir="false" afterPath="$PROJECT_DIR$/../build/temp.linux-x86_64-cpython-39/src/Utilities.o" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../cmake-build-release/.ninja_deps" beforeDir="false" afterPath="$PROJECT_DIR$/../cmake-build-release/.ninja_deps" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../cmake-build-release/.ninja_log" beforeDir="false" afterPath="$PROJECT_DIR$/../cmake-build-release/.ninja_log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../cmake-build-release/Testing/Temporary/LastTest.log" beforeDir="false" afterPath="$PROJECT_DIR$/../cmake-build-release/Testing/Temporary/LastTest.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../mnist.py" beforeDir="false" afterPath="$PROJECT_DIR$/../mnist.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../mnist2.py" beforeDir="false" afterPath="$PROJECT_DIR$/../mnist2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../pamap.py" beforeDir="false" afterPath="$PROJECT_DIR$/../pamap.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../pamap2.py" beforeDir="false" afterPath="$PROJECT_DIR$/../pamap2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python_wrapper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/python_wrapper.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sOptics.egg-info/PKG-INFO" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sOptics.egg-info/PKG-INFO (Yingtao Zheng's conflicted copy 2025-01-15)" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sOptics.egg-info/SOURCES.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sOptics.egg-info/dependency_links.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sOptics.egg-info/not-zip-safe" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sOptics.egg-info/requires.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sOptics.egg-info/top_level.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/Utilities.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../src/Utilities.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/Utilities.h" beforeDir="false" afterPath="$PROJECT_DIR$/../src/Utilities.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/sVDC.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../src/sVDC.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/sVDC.h" beforeDir="false" afterPath="$PROJECT_DIR$/../src/sVDC.h" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 4
+}]]></component>
+  <component name="ProjectId" id="2yWG6pA1NmT8VewIMKCEKYj2jdp" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-53e2683a6804-9cdd278e9d02-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-251.26094.141" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ba0df4f8-c1b0-4d59-9375-4b8ca88ea260" name="Changes" comment="" />
+      <created>1749942743202</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1749942743202</updated>
+    </task>
+    <servers />
+  </component>
+</project>
