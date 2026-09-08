@@ -1,7 +1,15 @@
 # CluProp
 
-CluProp is a C++17 and Python implementation of density-aware neighbourhood propagation clustering. It clusters a precomputed k-nearest-neighbour (k-NN) graph; it does not currently compute nearest neighbours from feature vectors.
+CluProp is a C++17 and Python implementation of density-aware clustering on precomputed k-NN graphs.
+It first converts a directed k-NN graph into a symmetric k-NN graph, keeping an undirected connection whenever either point appears in the other's neighbourhood.
+Clustering is performed by DANE (Density-Aware Neighborhood Expansion), which grows clusters from dense regions to sparse reagions using a priority queue. 
 
+A candidate point $x$, reached from a higher-density predecessor $p$, is processed with the priority
+$d(p,x) + d_k(x)$, where $d_k(x)$ is the local k-NN distance of $x$. 
+This favors short connections into locally dense regions. 
+DANE further requires local neighbourhood support before propagating a cluster label from the predecessor, helping prevent expansion across weak or spurious connections.
+
+CluProp currently assumes the k-NN graph is computed externally.
 The Python extension accepts directed k-NN indices and distances, builds a symmetric graph, and propagates cluster labels through that graph.
 
 ## Requirements
