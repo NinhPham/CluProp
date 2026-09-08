@@ -1,13 +1,18 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: cluprop
 Version: 0.0.1
-Summary: UNKNOWN
-Home-page: UNKNOWN
+Home-page: https://github.com/NinhPham/CluProp
+Author: Yingtao Zheng, Hugo Phibbs, Ninh Pham
+Author-email: pham@imada.sdu.dk
 License: MIT
-Keywords: density-based clustering,label propagation,kNN graph
-Platform: UNKNOWN
+Keywords: density-based clustering,kNN graph,label propagation,DANE
 Requires-Python: >=3.7
 Provides-Extra: test
-
-UNKNOWN
-
+Requires-Dist: pytest; extra == "test"
+Dynamic: author
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: provides-extra
+Dynamic: requires-python

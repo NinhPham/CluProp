@@ -15,6 +15,6 @@
 int main(int nargs, char** args)
 {
     srand(time(NULL)); // should only be called once for random generator
-
+    return 0;
 }
 

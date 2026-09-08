@@ -15,7 +15,7 @@
 #include <iostream> // cin, cout
 
 //#include <boost/multi_array.hpp>
-#include <boost/dynamic_bitset.hpp>
+//#include <boost/dynamic_bitset.hpp>
 
 #define PI				3.141592653589793238460
 #define POS_INF std::numeric_limits<float>::infinity()

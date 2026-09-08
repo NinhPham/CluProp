@@ -5,7 +5,7 @@ from utils import getMetric
 import networkx as nx
 import igraph as ig
 
-import clupig
+import cluprop
 import faiss
 import cluprop
 
@@ -29,13 +29,10 @@ import timeit
 import gc
 from concurrent.futures import ThreadPoolExecutor
 
-def js_distance(x, y):
-    return jensenshannon(x, y, base=2.0)  # base 2, returns sqrt(JS divergence)
-
 if __name__ == '__main__':
 
-    path = "/shared/Dataset/Clustering/"
-    savePath = "/shared/Dataset/Clustering/mnist70K_output/"
+    path = "/work/Datasets/Clustering/"
+    savePath = "/work/Datasets/Clustering/mnist70K_output/"
 
     # dataset = np.loadtxt(path + 'mnist_all_X')
     # X = np.loadtxt(path + 'mnist_all_X', delimiter=",")
@@ -98,13 +95,13 @@ if __name__ == '__main__':
     # sigma = 1 # only used on L1: 30000, L2: 2600
     # dist = "JS"
     # clusterNoise = 0 # not used on sOptics
-    # output = 'clupig'
+    # output = 'cluprop'
     # numThreads = 32
     # verbose = False
     # ker_intervalSampling = 0.4 # only used on Chi2, JS distances
     #
     # seed = -1  # -1 is random
-    # dbs = clupig.clupig(n, d)
+    # dbs = cluprop.cluprop()
     # dbs.set_params(numProj, top_s, top_m, top_p, dist, ker_n_features, sigma, ker_intervalSampling, verbose, numThreads, seed, output)
     #
     # t1 = timeit.default_timer()
@@ -162,52 +159,56 @@ if __name__ == '__main__':
     # np.save(savePath + f"ivfpq_{nlist}_{nprobe}_{m}_Cosine_{k_max}_distances.npy", distances)  # shape: (n, k), dtype: float32
 
     """ Compute NNDescent """
-    n_threads = 8
-    k_max = 20
-    savePath = "/shared/Dataset/Clustering/mnist70K_output/"
-    seed = 42
-    dist = "cosine"
-
-    # NNDescent params
-    # X = normalize(X, norm='l2', axis=1)
-    n_trees = 8
-    n_iters = 5
-    leafSize = 50
-    t1 = timeit.default_timer()
-
-    # It does not count the point itself
-    indices, distances = NNDescent(X, n_neighbors=k_max, random_state=None,
-                               n_trees=n_trees,          # <-- number of RP trees (you choose)
-                               leaf_size=leafSize,        # good rule: ≈ n_neighbors
-                               metric=dist, n_iters=n_iters, n_jobs=n_threads).neighbor_graph
-
-    build_time = timeit.default_timer() - t1
-    # exact_kNN = np.load(savePath + "exact_Cosine_200_indices.npy").astype(np.int32)
-    # r = utils.getAcc_kNNG(exact_kNN[:,1:k_max+1], indices) # exact includes the index of the point itself
-    # print(f"RPT: n_trees={n_trees:2d} n_iters={n_iters:2d}  recall@{k_max}: {r:.4f} time={build_time:.4f}s")
-
-    print(f"RPT: metric={dist} n_trees={n_trees:2d} n_iters={n_iters:2d} leafSize={leafSize:2d} time={build_time:.4f}s")
-    indices = indices.astype(np.int32)
-    distances = distances.astype(np.float32)
+    # n_threads = 8
+    # k_max = 20
+    # savePath = "/work/Datasets/Clustering/mnist70K_output/"
+    # seed = 42
+    # dist = "cosine"
+    #
+    # # NNDescent params
+    # # X = normalize(X, norm='l2', axis=1)
+    # n_trees = 8
+    # n_iters = 5
+    # leafSize = 50
+    # t1 = timeit.default_timer()
+    #
+    # # It does not count the point itself
+    # indices, distances = NNDescent(X, n_neighbors=k_max, random_state=None,
+    #                            n_trees=n_trees,          # <-- number of RP trees (you choose)
+    #                            leaf_size=leafSize,        # good rule: ≈ n_neighbors
+    #                            metric=dist, n_iters=n_iters, n_jobs=n_threads).neighbor_graph
+    #
+    # build_time = timeit.default_timer() - t1
+    # # exact_kNN = np.load(savePath + "exact_Cosine_200_indices.npy").astype(np.int32)
+    # # r = utils.getAcc_kNNG(exact_kNN[:,1:k_max+1], indices) # exact includes the index of the point itself
+    # # print(f"RPT: n_trees={n_trees:2d} n_iters={n_iters:2d}  recall@{k_max}: {r:.4f} time={build_time:.4f}s")
+    #
+    # print(f"RPT: metric={dist} n_trees={n_trees:2d} n_iters={n_iters:2d} leafSize={leafSize:2d} time={build_time:.4f}s")
+    # indices = indices.astype(np.int32)
+    # distances = distances.astype(np.float32)
 
     # np.save(savePath + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy", indices)    # shape: (n, k), dtype: int32
     # np.save(savePath + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy", distances)  # shape: (n, k), dtype: float32
 
     """====================="""
 
-    """ Propagation with precomputed EXACT/Faiss/NNDescent symmetric kNN (need +1 as Faiss consider the point itself as part of kNN) """
+    """ Propagation with precomputed EXACT/Faiss/NNDescent symmetric kNN (need +1 as Faiss/NNDescent consider the point itself as part of kNN) """
     n_threads = 8
     n_repeats = 1
 
     # Load precompute kNNG
 
-    # Faiss params
+    ## Exact params
+    dist = "Cosine"
+    k_max = 200
+
+    ## Faiss params
     # dist = "BrayCurtis"
     # nlist = 100
     # nprobe = 10
     # k_max = 50
 
-    # NNDescent params
+    ## NNDescent params
     # n_trees = 8
     # n_iters = 2
     # leafSize = 50
@@ -216,14 +217,14 @@ if __name__ == '__main__':
 
     # indices = np.load(savePath + f"ivf_{nlist}_{nprobe}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
     # distances = np.load(savePath + f"ivf_{nlist}_{nprobe}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
-    # indices = np.load(savePath + f"exact_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
-    # distances = np.load(savePath + f"exact_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
+    indices = np.load(savePath + f"exact_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
+    distances = np.load(savePath + f"exact_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
 
     # indices = np.load(savePath + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
     # distances = np.load(savePath + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
 
-    # n_neighbors_list = [4, 6, 8, 10, 12, 14, 16, 18, 20]
-    n_neighbors_list = [4, 6, 8, 10, 12, 14]
+    n_neighbors_list = [4, 6, 8, 10, 12, 14, 16, 18, 20]
+    # n_neighbors_list = [4, 6, 8, 10, 12, 14]
     # n_neighbors_list = [20, 25, 30, 35, 40, 45, 50]
     # n_neighbors_list = [60, 70, 80, 90, 100]
     # n_neighbors_list = [8]
@@ -280,9 +281,11 @@ if __name__ == '__main__':
 
         # DANE
         t1 = timeit.default_timer()
-
-        dbs = cluprop.cluprop(n, d)
+        dbs = cluprop.cluprop()
         dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors)
+        t2 = timeit.default_timer()
+        print('Dane Time: {}'.format(t2 - t1))
+
         lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
         print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
@@ -291,10 +294,9 @@ if __name__ == '__main__':
         # lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
         # print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
-        t2 = timeit.default_timer()
-        print('DANE Time: {}'.format(t2 - t1))
 
-    """ (c,k)-DNP with precomputed EXACT/Faiss symmetric kNN, needs +1 """
+
+    """ (c,k)-DANE with precomputed EXACT/Faiss symmetric kNN, needs +1 """
     """ c > 1 gives higher accuracy, and G_kmax where kmax > c*k gives more stable accuracy than G_k """
     # # n_threads = 8
     # # k_max = 200
@@ -322,7 +324,7 @@ if __name__ == '__main__':
     # #
     #
     # c = 1
-    # dbs = clupig.clupig(n, d)
+    # dbs = cluprop.cluprop()
     # # dbs.set_min_cluster_size(50)
     #
     # for n_neighbors in n_neighbors_list:
@@ -331,7 +333,7 @@ if __name__ == '__main__':
     #
     #     K = min(c * n_neighbors + 1, k_max)
     #
-    #     # clupig
+    #     # cluprop
     #     t1 = timeit.default_timer()
     #
     #     # G_K where K = ck
@@ -346,63 +348,6 @@ if __name__ == '__main__':
     #
     #     t2 = timeit.default_timer()
     #     print('sVDC Time: {}'.format(t2 - t1))
-
-    """ (c,k)-DNP with CEOs (Cosine)"""
-    """ Note: clupig forms cluster need c = 2 to have higher accuracy, so need to use 2 * n_neighbors when forming the graph """
-    # n_threads = 32
-    #
-    # # Cosine or L2
-    # numProj = 256
-    # s = 20
-    # m = 50
-    # topP = 5
-    #
-    # numEmbed = 1024
-    # sigma = 30000  # only used on L1: 30000, L2: 2600
-    # dist = "Cosine"
-    # output = 'clupig'
-    # numThreads = n_threads
-    # verbose = False
-    # intervalSampling = 0.4  # only used on Chi2, JS distances
-    #
-    # seed = -1  # -1 is random
-    # dbs = clupig.clupig(n, d)
-    #
-    # dbs.set_params(numProj, s, m, topP, dist, numEmbed, sigma, intervalSampling, verbose, numThreads, seed, output)
-    # # dbs.set_min_cluster_size(10)
-    # # dbs.set_neighbor_cutoff()
-    #
-    # # n_neighbors_list = [4, 5, 6, 7, 8, 9]
-    # # n_neighbors_list = [2, 3, 4, 5, 6, 7, 8, 9, 10]
-    # # n_neighbors_list = [14, 16, 18, 20, 22, 24]
-    # n_neighbors_list = [20]
-    #
-    # K = 40
-    # c = 1
-    #
-    # print(n_neighbors_list)
-    # print("c: ", c)
-    #
-    # n_repeats = 5
-    #
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     # print('n_neighbors: ', n_neighbors)
-    #
-    #     for i in range(n_repeats):
-    #
-    #         t1 = timeit.default_timer()
-    #
-    #         # indices, distances = dbs.ceos2_knn_from_file(bin_file, K)
-    #         # dbs.dnp_from_knn(indices, distances, n_neighbors, c=c)
-    #
-    #         dbs.ceos2_dnp(X, n_neighbors, c)
-    #         # dbs.ceos2_dnp_from_file(bin_file, n_neighbors, c)
-    #
-    #         t2 = timeit.default_timer()
-    #         # print('clupig Time: {}'.format(t2 - t1))
-    #         lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
-    #         print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
     """====================="""
 

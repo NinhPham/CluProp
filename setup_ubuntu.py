@@ -56,12 +56,13 @@ ext_modules = [
 
 
 setup(
-    name='cluprop',
-    version='0.0.1',
-    license='MIT',
-    keywords=
-    'density-based clustering, label propagation, kNN graph',
-    # include_package_data=True,
+    name="cluprop",
+    version=__version__,
+    license="MIT",
+    author='Yingtao Zheng, Hugo Phibbs, Ninh Pham',
+    author_email='pham@imada.sdu.dk',
+    url='https://github.com/NinhPham/CluProp',
+    keywords="density-based clustering, kNN graph, label propagation, DANE",
     ext_modules=ext_modules,
     extras_require={"test": "pytest"},
     # Currently, build_ext only provides an optional "highest supported C++

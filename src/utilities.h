@@ -38,6 +38,21 @@ inline int sgn(float x)
     // return 0;
 }
 
+inline float compute_reachability(const float kNN_Xi, const float kNN_Xj, const float distXiXj, const string reachDistType) {
+    if (reachDistType == "DANE") {
+        return (kNN_Xj + distXiXj) / 2;
+    }
+    else if (reachDistType == "OPTICS") {
+        return max(kNN_Xi, distXiXj);
+    }
+    else if (reachDistType == "HDBSCAN") {
+        return max({kNN_Xi, kNN_Xj, distXiXj});
+    }
+    else
+        return distXiXj;
+}
+
+
 // Saving
 void outputLabels(const IVector &, const string&);
 

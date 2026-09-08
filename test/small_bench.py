@@ -121,6 +121,8 @@ if __name__ == '__main__':
 
     # path = "/Users/pham/Dropbox-UniofAuckland/Ninh Pham/Working/_Code/C++/CluProp/test/Dataset/"  # Mac
     path = "/home/npha145/Uni of Auckland Dropbox/Ninh Pham/Working/_Code/C++/CluProp/test/Dataset/"
+    # path = "/work/Code/CluProp/test/Dataset/"
+
     dataName = "soybean" # multiple-features, optdigits, pendigits, usps, semeion, letter, dermatology, soybean
     X = np.loadtxt(f"{path}{dataName}-data.txt", delimiter=",")
     y = np.loadtxt(f"{path}{dataName}-labels.txt", delimiter=",")
@@ -209,7 +211,7 @@ if __name__ == '__main__':
         #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
         # Step 3: DANE
-        dbs = cluprop.cluprop(n, d)
+        dbs = cluprop.cluprop()
         # dbs.set_min_cluster_size(50)
 
         for i in range(n_repeats):

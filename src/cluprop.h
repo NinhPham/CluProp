@@ -7,6 +7,7 @@
 #endif
 
 #include "header.h"
+#include <stdexcept>
 
 class cluprop {
 
@@ -14,8 +15,8 @@ public:
 
     // RowMajorMatrixXf matrix_X; // public as we will have to load data into it (when data is big)
 
-    int n_points;
-    int n_features;
+    int n_points = 0;
+    // int n_features;
 
     // used on DANE to cut off neighbors that are too far away when inserting into the priority queue, default is false.
     // This is to reduce the number of neighbors to be extended, and improve efficiency.
@@ -41,12 +42,8 @@ public:
 
     // Clustering's output
     IVector labels;
-    int n_clusters = 0;
 
-    cluprop(int n, int d){
-        n_points = n;
-        n_features = d;
-    }
+    cluprop() = default;
 
     void set_prop_params(bool ver = false, string filename = "", int minClusterSize = 50){
         verbose = ver;
@@ -62,7 +59,6 @@ public:
 
     void clear(){
 
-        n_clusters = 0;
         labels.clear();
         vec2D_NeighborDist_.clear(); // vector of approx neighborhoods and its distances
     }
@@ -72,7 +68,16 @@ public:
     }
 
 
-    void set_min_cluster_size(float s){ min_cluster_size = s; }
+    void set_min_cluster_size(int s)
+    {
+        if (s <= 0) {
+            throw std::invalid_argument(
+                "min_cluster_size must be a positive integer");
+        }
+
+        min_cluster_size = s;
+    }
+
     void set_propagation_cutoff(bool b){ propagation_cutoff = b; }
 
     void set_threads(int t)
@@ -97,6 +102,10 @@ public:
 private:
 
     void dane_(int, int);
+    void dane_simplified_(int);
+
+    void prop_(int , string);
+
 };
 
 

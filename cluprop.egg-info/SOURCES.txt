@@ -8,4 +8,4 @@ cluprop.egg-info/top_level.txt
 python/python_wrapper.cpp
 src/cluprop.cpp
 src/utilities.cpp
-test/test_speed.py
+test/test_cluprop_validation.py
