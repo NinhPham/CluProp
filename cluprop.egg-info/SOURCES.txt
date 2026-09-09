@@ -8,5 +8,11 @@ cluprop.egg-info/requires.txt
 cluprop.egg-info/top_level.txt
 python/python_wrapper.cpp
 src/cluprop.cpp
+src/cluprop.h
+src/csr_graph.cpp
+src/csr_graph.h
+src/header.h
 src/utilities.cpp
+src/utilities.h
+test/test_cluprop_regression.py
 test/test_cluprop_validation.py

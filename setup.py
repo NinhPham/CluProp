@@ -72,7 +72,14 @@ ext_modules = [
         [
             "python/python_wrapper.cpp",
             "src/cluprop.cpp",
+            "src/csr_graph.cpp",
             "src/utilities.cpp",
+        ],
+        depends=[
+            "src/cluprop.h",
+            "src/csr_graph.h",
+            "src/header.h",
+            "src/utilities.h",
         ],
         define_macros=[("VERSION_INFO", __version__)],
         include_dirs=include_dirs,

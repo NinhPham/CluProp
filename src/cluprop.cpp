@@ -27,7 +27,7 @@ void cluprop::dane_simplified_(const int k)
     {
         // init index from 0 to n
         sortedIndex_density[n] = n;
-        const auto& Xi_neighbor = vec2D_NeighborDist_[n];
+        const auto Xi_neighbor = graph_.neighbors(n);
 
         // We can use kNN_dist as density proxy, however there are some case that points do not have enough kNN distance
         // We therefore use the degree as density proxy
@@ -37,7 +37,7 @@ void cluprop::dane_simplified_(const int k)
         vec_density[n] = Xi_degree;
 
         if (Xi_degree >= k)
-            vec_kNNDist[n] = Xi_neighbor[k - 1].second;
+            vec_kNNDist[n] = graph_.knn_distance(n, k);
     }
 
     // Sort points based on its density
@@ -74,14 +74,15 @@ void cluprop::dane_simplified_(const int k)
         // Min PQ has 3 values: (1) Xi, (2) Predecessor Idx, (3) weight
         Min_PQ_Triple seedSet;
 
-        const auto& Xi_neighborhood = vec2D_NeighborDist_[topDens_Idx];
+        const auto Xi_neighborhood = graph_.neighbors(topDens_Idx);
 
         // Insert all neighbor of Xi into PQ
         for (auto it = Xi_neighborhood.begin(); it != Xi_neighborhood.end(); ++it)
         {
             const auto& point = *it;
 
-            int Xj = point.first; // first: idx, second: dist
+            const int Xj = point.neighbor;
+            const float distXiXj = point.distance;
 
             // only update if it is not processed
             if (vec_processed[Xj])
@@ -89,21 +90,21 @@ void cluprop::dane_simplified_(const int k)
 
             // Simulate Density-Peak, keep min connected distance with higher density points
             // This will reduce the size of PQ, improving running time
-            if (minConnectedDist[Xj] < point.second) // point.second= dist(Xi, Xj)
+            if (minConnectedDist[Xj] < distXiXj)
                 continue;
 
             // Heuristic to reduce PQ size: only add to PQ for smaller connected dist(Xi, Xj)
             // This idea is similar to Optics, i.e. keeping the minimum reachability dist so far
-            minConnectedDist[Xj] = point.second;
+            minConnectedDist[Xj] = distXiXj;
 
             // There are some points which do not have enough k neighbors (in a general graph or mistakes on approximating kNN).
             // If so, we use d(Xi, Xj) as weight
             // This will help such border/noise points to be absorbed by the cluster formed by processed core points
             float weight = 0.0;
             if ((int)vec_degree[Xj] < k)
-                weight = point.second;  // point does not have enough kNN
+                weight = distXiXj;  // point does not have enough kNN
             else
-                weight = (point.second + vec_kNNDist[Xj]) / 2; // point has enough kNN
+                weight = (distXiXj + vec_kNNDist[Xj]) / 2; // point has enough kNN
 
             // Sorted by weight, but store extra information, i.e. highest-index = connected core point,
             // to form cluster
@@ -156,7 +157,7 @@ void cluprop::dane_simplified_(const int k)
                 // If Xi and Xj are too far away, then we do not expand the cluster
                 // This is to control the noise of approx neighborhoods returned by ANNS solvers
                 // If Xj belongs to Xi's cluster, it should be connected via another point Xk, i.e.
-                if ( distXiXj > (vec2D_NeighborDist_[Xi][t1 - 1].second + vec2D_NeighborDist_[Xj][t2 - 1].second))
+                if (distXiXj > (graph_.knn_distance(Xi, t1) + graph_.knn_distance(Xj, t2)))
                     bExpandCluster = false;
             }
 
@@ -164,11 +165,14 @@ void cluprop::dane_simplified_(const int k)
             // This happens at two border points
             if (!bExpandCluster) {
                 vec_processed[Xj] = false;
+
+                minConnectedDist[Xj] = POS_INF; // reset minConnectedDist
+
                 continue;
             }
 
             // We are now expand the cluster from Xj
-            const auto& Xj_neighborhood = vec2D_NeighborDist_[Xj];
+            const auto Xj_neighborhood = graph_.neighbors(Xj);
 
             // Note: Check one of kNN neighbors has label as the predecessor
             // as we want to spread cluster info via min reachability-dist
@@ -176,7 +180,7 @@ void cluprop::dane_simplified_(const int k)
 
             for (auto it = Xj_neighborhood.begin(); it != Xj_neighborhood.begin() + min(k, vec_degree[Xj]); ++it)
             {
-                if (labels[it->first] == predLabel)
+                if (labels[it->neighbor] == predLabel)
                 {
                     hasPredLabel = true;
                     break;
@@ -205,24 +209,25 @@ void cluprop::dane_simplified_(const int k)
             {
                 const auto& p = *it;
 
-                int Xk = p.first; // first: point idx, second: dist
+                const int Xk = p.neighbor;
+                const float distXjXk = p.distance;
 
                 // only update if it is not processed
                 if (vec_processed[Xk])
                     continue;
 
                 // Note: This condition is nice to reduce PQ since we aim at finding min reachability distance
-                if (minConnectedDist[Xk] < p.second)
+                if (minConnectedDist[Xk] < distXjXk)
                     continue;
 
                 // Heuristic to reduce PQ size: only add to PQ for smaller connected dist(Xi, Xj)
-                minConnectedDist[Xk] = p.second;
+                minConnectedDist[Xk] = distXjXk;
 
                 float weight = 0.0;
                 if (vec_degree[Xk] < k)
-                    weight = p.second;
+                    weight = distXjXk;
                 else
-                    weight = (p.second + vec_kNNDist[Xk]) / 2;
+                    weight = (distXjXk + vec_kNNDist[Xk]) / 2;
 
                 seedSet.emplace(Xk, Xj, weight);
 
@@ -258,7 +263,7 @@ void cluprop::dane_(const int k, const int k_expand)
 
         for (int n = 0; n < n_points; ++n)
         {
-            auto const neighborSize = static_cast<float>(vec2D_NeighborDist_[n].size());
+            auto const neighborSize = static_cast<float>(graph_.degree(n));
 
             if (neighborSize <= 0) {
                 counter0++;
@@ -300,7 +305,7 @@ void cluprop::dane_(const int k, const int k_expand)
     {
         // init index from 0 to n
         sortedIndex_density[n] = n;
-        const auto& Xi_neighbor = vec2D_NeighborDist_[n];
+        const auto Xi_neighbor = graph_.neighbors(n);
 
         // This is for the case that some points do not have enough minPts neighbors
         // In this case, we use the size of neighborhood as density estimate
@@ -313,9 +318,9 @@ void cluprop::dane_(const int k, const int k_expand)
         vec_density[n] = (float)Xi_degree;
 
         // We can use kNN dist. If not enough k neighbors, density = 0 (default)
-        // if ( (int)vec2D_NeighborDist[n].size() >= k )
+        // if (static_cast<int>(graph_.degree(n)) >= k)
         // {
-        //     float density_dist = vec2D_NeighborDist[n][k - 1].second; // minPts-1, since index starts from 0
+        //     float density_dist = graph_.knn_distance(n, k);
         //
         //     if (density_dist > 0.0) // we might use [k - 1]
         //         vec_density[n] = 1.0 / density_dist;
@@ -326,7 +331,7 @@ void cluprop::dane_(const int k, const int k_expand)
         // avg kNN-dist
         // for (int i = 0; k < k; ++k)
         // {
-        //     float dist = vec2D_NeighborDist[n][k].second; // second: distance
+        //     float dist = graph_.knn_distance(n, k + 1);
         //     if (dist > 0) // we might use [k - 1]
         //         vec_density[n] += (dist / k);
         // }
@@ -337,7 +342,7 @@ void cluprop::dane_(const int k, const int k_expand)
             vec_expandLimit[n] = min(vec_expandLimit[n], k_expand);
 
         if (Xi_degree >= k)
-            vec_kNNDist[n] = Xi_neighbor[k - 1].second;
+            vec_kNNDist[n] = graph_.knn_distance(n, k);
     }
 
     // Sort points based on its density
@@ -374,32 +379,19 @@ void cluprop::dane_(const int k, const int k_expand)
         // Min PQ has 3 values: (1) Xi, (2) Predecessor Idx, (3) weight
         Min_PQ_Triple seedSet;
 
-        const auto& Xi_neighborhood = vec2D_NeighborDist_[topDens_Idx];
+        const auto Xi_neighborhood = graph_.neighbors(topDens_Idx);
 
         // Insert all neighbor of Xi into PQ
         for (auto it = Xi_neighborhood.begin(); it != Xi_neighborhood.begin() + vec_expandLimit[topDens_Idx]; ++it)
         {
             const auto& point = *it;
 
-            const int Xj = point.first; // first: idx, second: dist
-            const float distXiXj = point.second;
-
-            // if (Xj < 0 || Xj >= n_points)
-            // {
-            //     cout << "Bug in Xj: " << Xj << endl;
-            //     continue;
-            // }
+            const int Xj = point.neighbor;
+            const float distXiXj = point.distance;
 
             // only update if it is not processed
             if (vec_processed[Xj])
                 continue;
-
-            // Note: We might want to add more parameters to control the running time
-            // This is for the case (2km + additional points) neighbors are too large and cover points are not on similar density, i.e. dist(Xi, Xj) >> kNN(Xi)
-            // We will pick the first top-minPts points, then the rest depends on dist(Xi, Xj) < (1 +- alpha) kNN(Xi)
-            // Since Xi_neighbor is sorted, so we should break
-            // if (vec_density[topDens_Idx] * point.second > 1 + sVDC::alpha)
-            //     break;
 
             // Since we process point using priority dist(p, x) + kNN_dist(x)
             // There is no need to push into the queue if dist(y, x) > dist(p, x)
@@ -470,7 +462,7 @@ void cluprop::dane_(const int k, const int k_expand)
                 // If Xi and Xj are too far away, then we do not expand the cluster
                 // This is to control the noise of approx neighborhoods returned by ANNS solvers
                 // If Xj belongs to Xi's cluster, it should be connected via another point Xk, i.e.
-                if ( distXiXj > (vec2D_NeighborDist_[Xi][t1 - 1].second + vec2D_NeighborDist_[Xj][t2 - 1].second))
+                if (distXiXj > (graph_.knn_distance(Xi, t1) + graph_.knn_distance(Xj, t2)))
                     bExpandCluster = false;
             }
 
@@ -487,7 +479,7 @@ void cluprop::dane_(const int k, const int k_expand)
             }
 
             // We are now expand the cluster from Xj
-            const auto& Xj_neighborhood = vec2D_NeighborDist_[Xj];
+            const auto Xj_neighborhood = graph_.neighbors(Xj);
 
             // Note: Check one of kNN neighbors has label as the predecessor
             // as we want to spread cluster info via min reachability-dist
@@ -495,7 +487,7 @@ void cluprop::dane_(const int k, const int k_expand)
 
             for (auto it = Xj_neighborhood.begin(); it != Xj_neighborhood.begin() + min(k_expand, vec_degree[Xj]); ++it)
             {
-                if (labels[it->first] == predLabel)
+                if (labels[it->neighbor] == predLabel)
                 {
                     hasPredLabel = true;
                     break;
@@ -524,8 +516,8 @@ void cluprop::dane_(const int k, const int k_expand)
             {
                 const auto& p = *it;
 
-                const int Xk = p.first; // first: point idx, second: dist
-                const float distXjXk = p.second;
+                const int Xk = p.neighbor;
+                const float distXjXk = p.distance;
 
                 // only update if it is not processed
                 if (vec_processed[Xk])
@@ -602,132 +594,26 @@ void cluprop::knn_dane(const Ref<const RowMajorMatrixXi> & matIndices, const Ref
         }
     }
 
-    // Step 1: Form symmetric kNN graph
-    vec2D_NeighborDist_ = vector< vector< pair<int, float> > > (n_points, vector< pair<int, float> >());
-
-    // Note: If NUM_LOCKS is large, we might not have enough stack memory if using array
-    // 16K locks is good for million-point data set though it is not good for small data sets.
-    constexpr size_t MAX_LOCKS = 16384;
-    const size_t num_locks = std::min(static_cast<size_t>(n_points),MAX_LOCKS);
-    vector<omp_lock_t> locks(num_locks);
-
-    // Initialize locks
-    for (size_t i = 0; i < num_locks; i++) {
-        omp_init_lock(&locks[i]);
-    }
-
-    #pragma omp parallel for num_threads(n_threads)
-    for (int n = 0; n < n_points; n++ ) {
-        for (int i = 0; i < n_neighbors; ++i) {
-
-            const int iPointIdx = matIndices(n, i); // vecIndices[n][i];
-            const float fDist = matDistances(n, i); // vecDistances[n][i];
-
-            if (iPointIdx == n) {
-                continue;  // Self edges are harmless but unnecessary.
-            }
-
-
-            omp_set_lock(&locks[n % num_locks]);
-            vec2D_NeighborDist_[n].emplace_back(iPointIdx, fDist); // duplicate at most twice
-            omp_unset_lock(&locks[n % num_locks]);
-
-            omp_set_lock(&locks[iPointIdx % num_locks]);
-            vec2D_NeighborDist_[iPointIdx].emplace_back(n, fDist); // so vector is much better than map()
-            omp_unset_lock(&locks[iPointIdx % num_locks]);
-        }
-    }
-
-    // Destroy locks
-    for (size_t i = 0; i < num_locks; i++) {
-        omp_destroy_lock(&locks[i]);
-    }
-
-
-    // First, sorting by ID to remove the duplicate ID, potential some error with same ID but difference distance (x1, 0.1), (x1, 0.2)
-    // After removing duplicated ID, then sort by distance ans DANE accesses points in the distance order
-    #pragma omp parallel for num_threads(n_threads)
-    for (int n = 0; n < n_points; ++n) {
-
-        auto& neighbors = vec2D_NeighborDist_[n];
-
-        // First sort: place all entries for the same neighbor together.
-        std::sort(neighbors.begin(), neighbors.end(),
-            [](const auto& a, const auto& b) {
-                if (a.first != b.first) {
-                    return a.first < b.first;
-                }
-                return a.second < b.second;
-            });
-
-        // Keep exactly one edge per neighbor: the one with minimum distance.
-        std::vector<std::pair<int, float>> dedup;
-        dedup.reserve(neighbors.size());
-
-        for (const auto& edge : neighbors) {
-            if (dedup.empty() || edge.first != dedup.back().first) {
-                dedup.push_back(edge);
-            } else {
-                dedup.back().second =
-                    std::min(dedup.back().second, edge.second);
-            }
-        }
-
-        // Second sort: DANE requires nearest neighbors first.
-        std::sort(dedup.begin(), dedup.end(),
-            [](const auto& a, const auto& b) {
-                if (a.second != b.second) {
-                    return a.second < b.second;
-                }
-                return a.first < b.first;
-            });
-
-        neighbors = std::move(dedup);
-    }
-
-    // Sorting vec2D_NeighborDist[n] by distance
-    // #pragma omp parallel for num_threads(n_threads)
-    // for (int n = 0; n < n_points; ++n) {
-    //
-    //     // Step 1: Sort by value (float)
-    //     std::sort(vec2D_NeighborDist_[n].begin(), vec2D_NeighborDist_[n].end(), [](const auto& a, const auto& b) {
-    //         // Compare based on the float value first
-    //         if (a.second != b.second) {
-    //             return a.second < b.second; // Sort by float in ascending order
-    //         }
-    //         // If float values are equal, compare based on the int value
-    //         return a.first < b.first; // Sort by int in ascending order
-    //     });
-    //
-    //
-    //     // Step 2: Linear scan and merge duplicates
-    //     std::vector<std::pair<int, float>> dedup;
-    //     // dedup.reserve(sVDC::vec2D_NeighborDist[n].size());  // optional optimization
-    //
-    //     for (size_t i = 0; i < vec2D_NeighborDist_[n].size(); ++i) {
-    //         if (dedup.empty() || vec2D_NeighborDist_[n][i].first != dedup.back().first) {
-    //             dedup.push_back(vec2D_NeighborDist_[n][i]);
-    //         } else {
-    //             // Keep min distance value (can switch to max or average)
-    //             dedup.back().second = min(dedup.back().second, vec2D_NeighborDist_[n][i].second);
-    //         }
-    //     }
-    //
-    //     vec2D_NeighborDist_[n] = dedup;
-    // }
+    // Step 1: Form the symmetric, deduplicated kNN graph in CSR format.
+    graph_.build_symmetric(
+        n_points,
+        matIndices.data(),
+        matDistances.data(),
+        static_cast<std::size_t>(n_neighbors),
+        n_threads);
 
     if (verbose)
     {
         float avgSize = 0.0;
         int counter0 = 0, counter1 = 0;
         for (int n = 0; n < n_points; ++n) {
-            if (vec2D_NeighborDist_[n].empty()) {
+            if (graph_.degree(n) == 0) {
                 counter0++;
             }
-            if ((int)vec2D_NeighborDist_[n].size() < k) {
+            if (static_cast<int>(graph_.degree(n)) < k) {
                 counter1++;
             }
-            avgSize += vec2D_NeighborDist_[n].size();
+            avgSize += graph_.degree(n);
         }
 
         avgSize /= n_points;
@@ -766,7 +652,7 @@ void cluprop::prop_(const int k, const string reachDistType)
     {
         // init index from 0 to n
         sortedIndex_density[n] = n;
-        const auto& Xi_neighbor = vec2D_NeighborDist_[n];
+        const auto Xi_neighbor = graph_.neighbors(n);
 
         // This is for the case that some points do not have enough minPts neighbors
         // In this case, we use the size of neighborhood as density estimate
@@ -778,7 +664,7 @@ void cluprop::prop_(const int k, const string reachDistType)
         vec_density[n] = Xi_degree;
 
         if (Xi_degree >= k)
-            vec_kNNDist[n] = Xi_neighbor[k - 1].second;
+            vec_kNNDist[n] = graph_.knn_distance(n, k);
     }
 
     // Sort points based on its density
@@ -815,14 +701,14 @@ void cluprop::prop_(const int k, const string reachDistType)
         // Min PQ has 3 values: (1) Xi, (2) Predecessor Idx, (3) weight
         Min_PQ_Triple seedSet;
 
-        const auto& Xi_neighborhood = vec2D_NeighborDist_[Xi];
+        const auto Xi_neighborhood = graph_.neighbors(Xi);
 
         // Insert all neighbor of Xi into PQ
         for (auto it = Xi_neighborhood.begin(); it != Xi_neighborhood.end(); ++it)
         {
             const auto& point = *it;
 
-            int Xj = point.first; // first: idx, second: dist
+            int Xj = point.neighbor;
 
             // only update if it is not processed
             if (vec_processed[Xj])
@@ -830,17 +716,17 @@ void cluprop::prop_(const int k, const string reachDistType)
 
             // Simulate Density-Peak, keep min connected distance with higher density points
             // This will reduce the size of PQ, improving running time
-            if (minConnectedDist[Xj] < point.second) // point.second= dist(Xi, Xj)
+            if (minConnectedDist[Xj] < point.distance)
                 continue;
 
             // Heuristic to reduce PQ size: only add to PQ for smaller connected dist(Xi, Xj)
             // This idea is similar to Optics, i.e. keeping the minimum reachability dist so far
-            minConnectedDist[Xj] = point.second;
+            minConnectedDist[Xj] = point.distance;
 
             // There are some points which do not have enough k neighbors (in a general graph or mistakes on approximating kNN).
             // If so, we use d(Xi, Xj) as weight
             // This will help such border/noise points to be absorbed by the cluster formed by processed core points
-            float weight = compute_reachability(vec_kNNDist[Xi], vec_kNNDist[Xj], point.second, reachDistType);
+            float weight = compute_reachability(vec_kNNDist[Xi], vec_kNNDist[Xj], point.distance, reachDistType);
 
             // Sorted by weight, but store extra information, i.e. highest-index = connected core point,
             // to form cluster
@@ -865,7 +751,7 @@ void cluprop::prop_(const int k, const string reachDistType)
             int predLabel = labels[Xi];
 
             // We are now expand the cluster from Xj
-            const auto& Xj_neighborhood = vec2D_NeighborDist_[Xj];
+            const auto Xj_neighborhood = graph_.neighbors(Xj);
 
             // Note: Check one of kNN neighbors has label as the predecessor
             // as we want to spread cluster info via min reachability-dist
@@ -873,7 +759,7 @@ void cluprop::prop_(const int k, const string reachDistType)
 
             for (auto it = Xj_neighborhood.begin(); it != Xj_neighborhood.begin() + min(k, vec_degree[Xj]); ++it)
             {
-                if (labels[it->first] == predLabel)
+                if (labels[it->neighbor] == predLabel)
                 {
                     hasPredLabel = true;
                     break;
@@ -902,20 +788,20 @@ void cluprop::prop_(const int k, const string reachDistType)
             {
                 const auto& p = *it;
 
-                int Xk = p.first; // first: point idx, second: dist
+                int Xk = p.neighbor;
 
                 // only update if it is not processed
                 if (vec_processed[Xk])
                     continue;
 
                 // Note: This condition is nice to reduce PQ since we aim at finding min reachability distance
-                if (minConnectedDist[Xk] < p.second)
+                if (minConnectedDist[Xk] < p.distance)
                     continue;
 
                 // Heuristic to reduce PQ size: only add to PQ for smaller connected dist(Xi, Xj)
-                minConnectedDist[Xk] = p.second;
+                minConnectedDist[Xk] = p.distance;
 
-                float weight = compute_reachability(vec_kNNDist[Xj], vec_kNNDist[Xk], p.second, reachDistType);
+                float weight = compute_reachability(vec_kNNDist[Xj], vec_kNNDist[Xk], p.distance, reachDistType);
 
                 seedSet.emplace(Xk, Xj, weight);
 
@@ -923,11 +809,6 @@ void cluprop::prop_(const int k, const string reachDistType)
         }
     }
 }
-
-
-
-
-
 
 
 

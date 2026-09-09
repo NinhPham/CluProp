@@ -128,6 +128,7 @@ if __name__ == '__main__':
 
     dbs = cluprop.cluprop()
     dbs.min_cluster_size = 50
+    dbs.n_threads = 16
 
     for n_neighbors in n_neighbors_list:
 

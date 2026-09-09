@@ -6,6 +6,7 @@
 #include <omp.h>
 #endif
 
+#include "csr_graph.h"
 #include "header.h"
 #include <stdexcept>
 
@@ -35,8 +36,7 @@ public:
 
 private:
 
-    // Data structures of DNP
-    vector< vector< pair<int, float> > > vec2D_NeighborDist_; // vector of neighborhoods and its distances from the graph
+    CSRGraph graph_;
 
 public:
 
@@ -60,7 +60,7 @@ public:
     void clear(){
 
         labels.clear();
-        vec2D_NeighborDist_.clear(); // vector of approx neighborhoods and its distances
+        graph_.clear();
     }
 
     ~cluprop(){

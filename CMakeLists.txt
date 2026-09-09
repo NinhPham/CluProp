@@ -6,10 +6,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package (Eigen3 REQUIRED NO_MODULE)
 find_package(Boost 1.71 REQUIRED NO_MODULE)
+include(CTest)
 
 add_executable(cluprop
         src/main.cpp # This is to run with main, compile with Release
         src/utilities.cpp
+        src/csr_graph.cpp
         src/cluprop.cpp
 )
 
@@ -17,6 +19,7 @@ add_executable(cluprop
 # This is only for CluProp library
 #add_library(cluprop
 #        src/cluprop.cpp
+#        src/csr_graph.cpp
 #        src/utilities.cpp
 #)
 #add_executable(cluprop_run src/main.cpp)
@@ -38,3 +41,21 @@ else()
             "CluProp requires OpenMP. Install an OpenMP-capable compiler/runtime.")
 endif()
 
+#if(BUILD_TESTING)
+#    add_executable(csr_graph_test
+#            test/test_csr_graph.cpp
+#            src/csr_graph.cpp
+#    )
+#    target_include_directories(csr_graph_test PRIVATE src)
+#
+#    if(OpenMP_CXX_FOUND)
+#        target_link_libraries(csr_graph_test PRIVATE OpenMP::OpenMP_CXX)
+#    elseif(APPLE)
+#        target_include_directories(csr_graph_test PRIVATE /opt/homebrew/opt/libomp/include)
+#        target_link_directories(csr_graph_test PRIVATE /opt/homebrew/opt/libomp/lib)
+#        target_compile_options(csr_graph_test PRIVATE -Xpreprocessor -fopenmp)
+#        target_link_libraries(csr_graph_test PRIVATE omp)
+#    endif()
+#
+#    add_test(NAME csr_graph_test COMMAND csr_graph_test)
+#endif()

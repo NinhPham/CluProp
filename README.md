@@ -79,8 +79,9 @@ labels = model.labels_
 ## Project layout
 
 ```text
-src/cluprop.cpp            Graph construction and propagation algorithms
+src/cluprop.cpp            DANE propagation and graph orchestration
 src/cluprop.h              CluProp class and public C++ API
+src/csr_graph.*            Symmetric k-NN graph construction and CSR storage
 python/python_wrapper.cpp  pybind11 bindings
 setup.py                   Python extension build configuration
 test/                      Benchmark and experiment scripts
@@ -99,5 +100,3 @@ The Python package metadata declares the MIT license. Add a root `LICENSE` file 
 > Yingtao Zheng, Hugo Phibbs, Ninh Pham. 
 > "Scalable Density-based Clustering via Density-aware Propagation on Approximate kNN Graphs."
 > ICDM 2026
-
-
