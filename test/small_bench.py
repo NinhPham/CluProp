@@ -123,7 +123,7 @@ if __name__ == '__main__':
     path = "/home/npha145/Uni of Auckland Dropbox/Ninh Pham/Working/_Code/C++/CluProp/test/Dataset/"
     # path = "/work/Code/CluProp/test/Dataset/"
 
-    dataName = "soybean" # multiple-features, optdigits, pendigits, usps, semeion, letter, dermatology, soybean
+    dataName = "multiple-features" # multiple-features, optdigits, pendigits, usps, semeion, letter, dermatology, soybean
     X = np.loadtxt(f"{path}{dataName}-data.txt", delimiter=",")
     y = np.loadtxt(f"{path}{dataName}-labels.txt", delimiter=",")
 
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     distance = "euclidean"
 
     # If cosine, then call this function
-    # X = normalize(X, norm='l2', axis=1)
+    X = normalize(X, norm='l2', axis=1)
 
     """ CluProp """
 
@@ -146,13 +146,14 @@ if __name__ == '__main__':
     k_max = 50
     n_repeats = 1
     k_expand = 1
+
     # Exact L2
     indices, distances = utils.faiss_kNN(X, k=k_max + 1, n_threads=8) # On MAC only
     indices = indices.astype(np.int32)
     distances = distances.astype(np.float32)
 
     # Step 2: Leiden / Louvain / LPA / DANE
-    n_neighbors_list = [4, 6, 8, 10, 12, 14, 16, 18, 20]
+    n_neighbors_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
     # n_neighbors_list = [4, 6, 8, 10, 12, 14]
     # n_neighbors_list = [20, 25, 30, 35, 40, 45, 50]
     # n_neighbors_list = [60, 70, 80, 90, 100]
@@ -165,16 +166,16 @@ if __name__ == '__main__':
         k_expand = round(K / 1)
 
         # LPA: need + 1 for Faiss
-        unweighted_graph = utils.fast_unweighted_sym_knng_igraph(indices[:, 1 : K], verbose=False)
-
-        for i in range(n_repeats):
-
-            t1 = timeit.default_timer()
-            labels = utils.run_LPA(unweighted_graph)
-            t2 = timeit.default_timer()
-            # print('LPA Time: {}'.format(t2 - t1))
-            lpa_ans = getMetric(labels, y)
-            print(' '.join(f"{x:.4f}" for x in lpa_ans))
+        # unweighted_graph = utils.fast_unweighted_sym_knng_igraph(indices[:, 1 : K], verbose=False)
+        #
+        # for i in range(n_repeats):
+        #
+        #     t1 = timeit.default_timer()
+        #     labels = utils.run_LPA(unweighted_graph)
+        #     t2 = timeit.default_timer()
+        #     # print('LPA Time: {}'.format(t2 - t1))
+        #     lpa_ans = getMetric(labels, y)
+        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
         # Note: exp_weight=False gives slightly higher accuracy, need + 1 for Faiss
         # Leiden
@@ -211,17 +212,17 @@ if __name__ == '__main__':
         #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
         # Step 3: DANE
-        dbs = cluprop.cluprop()
-        # dbs.set_min_cluster_size(50)
-
-        for i in range(n_repeats):
-
-            t1 = timeit.default_timer()
-            dbs.knn_dane(indices[:,  1 : K], distances[:,  1 : K], K, k_expand)
-            t2 = timeit.default_timer()
-            # print('DANE Time: {}'.format(t2 - t1))
-            lpa_ans = getMetric(np.array(dbs.labels_), y)
-            print(' '.join(f"{x:.4f}" for x in lpa_ans))
+        # dbs = cluprop.cluprop()
+        # # dbs.set_min_cluster_size(50)
+        #
+        # for i in range(n_repeats):
+        #
+        #     t1 = timeit.default_timer()
+        #     dbs.knn_dane(indices[:,  1 : K], distances[:,  1 : K], K, k_expand)
+        #     t2 = timeit.default_timer()
+        #     # print('DANE Time: {}'.format(t2 - t1))
+        #     lpa_ans = getMetric(np.array(dbs.labels_), y)
+        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
     # exit()
 
@@ -251,41 +252,41 @@ if __name__ == '__main__':
         print(f"{row[0]:4.2f} {row[1]:10d} {row[2]:12.4f} {row[3]:8.4f} {row[4]:8.4f} {row[5]:8.4f}")
 
     """ OPTICS """
-    minPts = 10
-    optics_model = OPTICS(
-        min_samples=minPts,
-        metric=distance,
-        cluster_method="xi",
-        xi=0.05,
-        n_jobs=8
-    )
-    optics_model.fit(X)
-
-    eps_list = np.arange(0.05, 0.81, 0.05)
-    results = []
-
-    for eps in eps_list:
-        labels = cluster_optics_dbscan(
-            reachability=optics_model.reachability_,
-            core_distances=optics_model.core_distances_,
-            ordering=optics_model.ordering_,
-            eps=eps
-        )
-
-        n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-        n_noise = np.sum(labels == -1)
-        noise_ratio = np.mean(labels == -1)
-
-        ami = adjusted_mutual_info_score(y, labels)
-        ari = adjusted_rand_score(y, labels)
-        nmi = normalized_mutual_info_score(y, labels)
-
-        results.append((eps, n_clusters_, noise_ratio, ami, ari, nmi))
-
-    print(" === OPTICS === ")
-    print(" eps    n_clusters_   noise_ratio     AMI    ARI    NMI")
-    for row in results:
-        print(f"{row[0]:4.2f} {row[1]:10d} {row[2]:12.4f} {row[3]:8.4f} {row[4]:8.4f} {row[5]:8.4f} ")
+    # minPts = 10
+    # optics_model = OPTICS(
+    #     min_samples=minPts,
+    #     metric=distance,
+    #     cluster_method="xi",
+    #     xi=0.05,
+    #     n_jobs=8
+    # )
+    # optics_model.fit(X)
+    #
+    # eps_list = np.arange(0.05, 0.81, 0.05)
+    # results = []
+    #
+    # for eps in eps_list:
+    #     labels = cluster_optics_dbscan(
+    #         reachability=optics_model.reachability_,
+    #         core_distances=optics_model.core_distances_,
+    #         ordering=optics_model.ordering_,
+    #         eps=eps
+    #     )
+    #
+    #     n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    #     n_noise = np.sum(labels == -1)
+    #     noise_ratio = np.mean(labels == -1)
+    #
+    #     ami = adjusted_mutual_info_score(y, labels)
+    #     ari = adjusted_rand_score(y, labels)
+    #     nmi = normalized_mutual_info_score(y, labels)
+    #
+    #     results.append((eps, n_clusters_, noise_ratio, ami, ari, nmi))
+    #
+    # print(" === OPTICS === ")
+    # print(" eps    n_clusters_   noise_ratio     AMI    ARI    NMI")
+    # for row in results:
+    #     print(f"{row[0]:4.2f} {row[1]:10d} {row[2]:12.4f} {row[3]:8.4f} {row[4]:8.4f} {row[5]:8.4f} ")
 
 
     """ Spectral clustering """

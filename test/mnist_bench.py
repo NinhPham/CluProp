@@ -270,14 +270,14 @@ if __name__ == '__main__':
         # This is G_k
         # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, :n_neighbors], distances[:, :n_neighbors], use_exp_weight=False,verbose=False)
 
-        for i in range(n_repeats):
-
-            t1 = timeit.default_timer()
-            labels = utils.run_louvain(weighted_graph)
-            t2 = timeit.default_timer()
-            print('Louvain Time: {}'.format(t2 - t1))
-            lpa_ans = getMetric(labels, true_labels)
-            print(' '.join(f"{x:.4f}" for x in lpa_ans))
+        # for i in range(n_repeats):
+        #
+        #     t1 = timeit.default_timer()
+        #     labels = utils.run_louvain(weighted_graph)
+        #     t2 = timeit.default_timer()
+        #     print('Louvain Time: {}'.format(t2 - t1))
+        #     lpa_ans = getMetric(labels, true_labels)
+        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
         # DANE
         t1 = timeit.default_timer()

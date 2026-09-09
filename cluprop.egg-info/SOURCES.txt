@@ -1,3 +1,4 @@
+README.md
 setup.py
 cluprop.egg-info/PKG-INFO
 cluprop.egg-info/SOURCES.txt
