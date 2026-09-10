@@ -1,18 +1,12 @@
 import os
 
-
 import numpy as np
 import math
 from sklearn.cluster import DBSCAN, OPTICS, KMeans, SpectralClustering, cluster_optics_dbscan
-from sklearn.metrics.pairwise import rbf_kernel
-from sklearn.utils import shuffle
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import normalize
 
 from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score, normalized_mutual_info_score
-from sklearn.metrics.cluster import pair_confusion_matrix
-from sklearn.neighbors import NearestNeighbors
-from pynndescent import NNDescent
 import timeit
 import hdbscan
 import cluprop
@@ -24,6 +18,8 @@ from sklearn.cluster import KMeans
 
 import utils
 from utils import getMetric
+import timeit
+from pathlib import Path
 
 # --------------------------------------------------
 # SpecACl fit_predict
@@ -110,23 +106,9 @@ def dpc_fit_predict(X, metric, n_clusters, dc_percent=2.0):
 
 if __name__ == '__main__':
 
-
-    # path = "/Users/pham/Dropbox-UniofAuckland/Ninh Pham/Working/_Code/Matlab/USPEC/"  # Mac
-    # from scipy.io import loadmat
-    # path = "/home/npha145/Uni of Auckland Dropbox/Ninh Pham/Working/_Code/Matlab/USPEC/"
-    # dataName = "MNIST"
-    # mat = loadmat(f"{path}data_{dataName}.mat")
-    # X = mat["fea"]
-    # y = mat["gt"].ravel()
-
-    # path = "/Users/pham/Dropbox-UniofAuckland/Ninh Pham/Working/_Code/C++/CluProp/test/Dataset/"  # Mac
-    path = "/home/npha145/Uni of Auckland Dropbox/Ninh Pham/Working/_Code/C++/CluProp/test/Dataset/"
-    # path = "/work/Code/CluProp/test/Dataset/"
-
     dataName = "multiple-features" # multiple-features, optdigits, pendigits, usps, semeion, letter, dermatology, soybean
-    X = np.loadtxt(f"{path}{dataName}-data.txt", delimiter=",")
-    y = np.loadtxt(f"{path}{dataName}-labels.txt", delimiter=",")
-
+    X = np.loadtxt(f"test/Dataset/{dataName}-data.txt", delimiter=",")
+    y = np.loadtxt(f"test/Dataset/{dataName}-labels.txt", delimiter=",")
 
     print("X shape:", X.shape)
     n_clusters = len(np.unique(y))
@@ -134,9 +116,9 @@ if __name__ == '__main__':
 
     n, d = X.shape
     n_threads = 8
-    distance = "euclidean"
 
-    # If cosine, then call this function
+    ## NOTE: As there are some library does not support cosine, we have to set distance = "euclidean" and normalize X
+    distance = "euclidean"
     X = normalize(X, norm='l2', axis=1)
 
     """ CluProp """
@@ -145,7 +127,7 @@ if __name__ == '__main__':
     n_threads = 8
     k_max = 50
     n_repeats = 1
-    k_expand = 1
+    k_support = 1
 
     # Exact L2
     indices, distances = utils.faiss_kNN(X, k=k_max + 1, n_threads=8) # On MAC only
@@ -163,7 +145,7 @@ if __name__ == '__main__':
 
         print('n_neighbors: ', n_neighbors)
         K = min(n_neighbors + 1, k_max)  # +1 for faiss
-        k_expand = round(K / 1)
+        k_support = round(K / 1)
 
         # LPA: need + 1 for Faiss
         # unweighted_graph = utils.fast_unweighted_sym_knng_igraph(indices[:, 1 : K], verbose=False)
@@ -213,12 +195,12 @@ if __name__ == '__main__':
 
         # Step 3: DANE
         # dbs = cluprop.cluprop()
-        # # dbs.set_min_cluster_size(50)
+        # dbs.n_threads = n_threads
         #
         # for i in range(n_repeats):
         #
         #     t1 = timeit.default_timer()
-        #     dbs.knn_dane(indices[:,  1 : K], distances[:,  1 : K], K, k_expand)
+        #     dbs.knn_dane(indices[:,  1 : K], distances[:,  1 : K], n_neighbors, k_support)
         #     t2 = timeit.default_timer()
         #     # print('DANE Time: {}'.format(t2 - t1))
         #     lpa_ans = getMetric(np.array(dbs.labels_), y)

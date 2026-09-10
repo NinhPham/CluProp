@@ -42,7 +42,7 @@ PYBIND11_MODULE(cluprop, m) { // Must be the same name with class Dbscan
         .def("clear", &cluprop::clear)
 
         // DANE from pre-computed kNN graph
-        .def("knn_dane", &cluprop::knn_dane, py::arg("indices"), py::arg("distances"), py::arg("k"), py::arg("k_expand")=-1)
+        .def("knn_dane", &cluprop::knn_dane, py::arg("indices"), py::arg("distances"), py::arg("k"), py::arg("k_support")=-1)
         ;
 
 } // namespace cluprop

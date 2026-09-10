@@ -248,10 +248,10 @@ void cluprop::dane_simplified_(const int k)
  * and hence local support will play the key role on the edge/border points when ALL points from the cluster has been labeled.
  *
  * @param k: govern the density estimation
- * @param k_expand: govern the local support, i.e. checking k_expand nearest neighbors that has label of the predecessor
+ * @param k_support: govern the local support, i.e. checking k_support nearest neighbors that has label of the predecessor
  *
  */
-void cluprop::dane_(const int k, const int k_expand)
+void cluprop::dane_(const int k, const int k_support)
 {
     if (verbose) {
 
@@ -270,7 +270,7 @@ void cluprop::dane_(const int k, const int k_expand)
             if (neighborSize < k) {
                 counter1++;
             }
-            if (neighborSize < k_expand) {
+            if (neighborSize < k_support) {
                 counter2++;
             }
 
@@ -282,7 +282,7 @@ void cluprop::dane_(const int k, const int k_expand)
         cout << "Avg size = " << avgSize << endl;
         cout << "Number of points with empty neighborhoods: " << counter0 << endl;
         cout << "Number of points with less than " << k << " neighbors: " << counter1 << endl;
-        cout << "Number of points with less than " << k_expand << " neighbors: " << counter2 << endl;
+        cout << "Number of points with less than " << k_support << " neighbors: " << counter2 << endl;
     }
 
     labels = IVector(n_points, -1);
@@ -337,7 +337,7 @@ void cluprop::dane_(const int k, const int k_expand)
 
         vec_expandLimit[n] = Xi_degree; // default expanding to all neighbors
         if (propagation_cutoff)
-            vec_expandLimit[n] = min(vec_expandLimit[n], k_expand);
+            vec_expandLimit[n] = min(vec_expandLimit[n], k_support);
 
         if (Xi_degree >= k)
             vec_kNNDist[n] = graph_.knn_distance(n, k);
@@ -483,7 +483,7 @@ void cluprop::dane_(const int k, const int k_expand)
             // as we want to spread cluster info via min reachability-dist
             bool hasPredLabel = false;
 
-            for (auto it = Xj_neighborhood.begin(); it != Xj_neighborhood.begin() + min(k_expand, vec_degree[Xj]); ++it)
+            for (auto it = Xj_neighborhood.begin(); it != Xj_neighborhood.begin() + min(k_support, vec_degree[Xj]); ++it)
             {
                 if (labels[it->neighbor] == predLabel)
                 {
@@ -550,10 +550,10 @@ void cluprop::dane_(const int k, const int k_expand)
  * @param matIndices: RowMajor matrix of indices, each row is the kNN indices for a point
  * @param matDistances: RowMajor matrix of distances, each row is the kNN distances for a point
  * @param k: govern the density estimation
- * @param k_expand: govern the local support, i.e. checking k_expand nearest neighbors that has label of the predecessor
+ * @param k_support: govern the local support, i.e. checking k_expand nearest neighbors that has label of the predecessor
  *
  */
-void cluprop::knn_dane(const Ref<const RowMajorMatrixXi> & matIndices, const Ref<const RowMajorMatrixXf> & matDistances, const int k, const int k_expand)
+void cluprop::knn_dane(const Ref<const RowMajorMatrixXi> & matIndices, const Ref<const RowMajorMatrixXf> & matDistances, const int k, const int k_support)
 {
 
     // Ensure kNN indices and distances, and parameter values are correct
@@ -566,9 +566,9 @@ void cluprop::knn_dane(const Ref<const RowMajorMatrixXi> & matIndices, const Ref
         throw std::invalid_argument("k must be positive");
     }
 
-    if (k_expand != -1 && k_expand <= 0) {
+    if (k_support != -1 && k_support <= 0) {
         throw std::invalid_argument(
-            "k_expand must be -1 (simplified mode) or a positive integer");
+            "k_support must be -1 (simplified mode) or a positive integer");
     }
 
     n_points = matIndices.rows();
@@ -623,11 +623,11 @@ void cluprop::knn_dane(const Ref<const RowMajorMatrixXi> & matIndices, const Ref
 
 
     // Step 2: Call propagation
-    if (k_expand == -1)
+    if (k_support == -1)
         dane_simplified_(k);
         // prop_(k, "OPTICS");
     else
-        dane_(k, k_expand);
+        dane_(k, k_support);
 }
 
 void cluprop::prop_(const int k, const string reachDistType)
