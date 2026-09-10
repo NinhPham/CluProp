@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package (Eigen3 REQUIRED NO_MODULE)
-find_package(Boost 1.71 REQUIRED NO_MODULE)
+# find_package(Boost 1.71 REQUIRED NO_MODULE)
 include(CTest)
 
 add_executable(cluprop
@@ -25,7 +25,7 @@ add_executable(cluprop
 #add_executable(cluprop_run src/main.cpp)
 
 target_link_libraries (cluprop PRIVATE Eigen3::Eigen)
-target_include_directories(cluprop PRIVATE ${Boost_INCLUDE_DIRS})
+# target_include_directories(cluprop PRIVATE ${Boost_INCLUDE_DIRS})
 find_package(OpenMP)
 
 if(OpenMP_CXX_FOUND) # Ubuntu

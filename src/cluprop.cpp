@@ -11,7 +11,6 @@ void cluprop::dane_simplified_(const int k)
 {
     labels = IVector(n_points, -1);
 
-    // boost::dynamic_bitset<> processSet(n_points);
     std::vector<uint8_t> vec_processed(n_points, 0);
     FVector minConnectedDist(n_points, POS_INF); // assign best_so_far distance
     FVector vec_kNNDist(n_points, POS_INF); // We indeed consider the point itself is its kNN, so we use (k-1)NN distance
@@ -288,7 +287,6 @@ void cluprop::dane_(const int k, const int k_expand)
 
     labels = IVector(n_points, -1);
 
-    // boost::dynamic_bitset<> processSet(n_points);
     std::vector<uint8_t> vec_processed(n_points, 0);
     FVector minConnectedDist(n_points, POS_INF); // assign best_so_far distance
     FVector vec_kNNDist(n_points, POS_INF); // We indeed consider the point itself is its kNN, so we use (k-1)NN distance
@@ -636,7 +634,6 @@ void cluprop::prop_(const int k, const string reachDistType)
 {
     labels = IVector(n_points, -1);
 
-    // boost::dynamic_bitset<> processSet(n_points);
     std::vector<uint8_t> vec_processed(n_points, 0);
     FVector minConnectedDist(n_points, POS_INF); // assign best_so_far distance
     FVector vec_kNNDist(n_points, POS_INF); // We indeed consider the point itself is its kNN, so we use (k-1)NN distance

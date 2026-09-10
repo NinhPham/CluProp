@@ -8,50 +8,42 @@ import faiss
 
 import numpy as np
 import math
-from sklearn.cluster import DBSCAN, OPTICS, KMeans, SpectralClustering,cluster_optics_dbscan
-from sklearn.metrics.pairwise import rbf_kernel
-from sklearn.utils import shuffle
+from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances
+
 from sklearn.preprocessing import normalize
-from scipy.spatial.distance import jensenshannon
 
-from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score, normalized_mutual_info_score
-from sklearn.metrics.cluster import pair_confusion_matrix
-
-from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import NearestNeighbors # Used for exact L1
 from pynndescent import NNDescent
 
 import timeit
-import gc
-from concurrent.futures import ThreadPoolExecutor
+
+from pathlib import Path
+from scipy.io import loadmat
 
 if __name__ == '__main__':
 
-    path = "/work/Datasets/Clustering/"
-    savePath = "/work/Datasets/Clustering/pamap2_output/"
+    path = Path("~/Work/Datasets/Clustering/").expanduser()
+    savePath = path / "pamap2_output"
 
     n = 1770131
     d = 51
-    bin_file = path + 'pamap2_X_no_0.bin'
+    bin_file = path / 'pamap2_X_no_0.bin'
 
-    X = utils.mmap_bin(path + 'pamap2_X_no_0.bin', n, d)
+    X = utils.mmap_bin(path / 'pamap2_X_no_0.bin', n, d)
     X.dtype == np.float32
 
-    # Normalize in case need it
-    # X = normalize(X, norm='l2', axis=1)
-    # X = normalize(X, norm='l1', axis=1)
-    # X /= X.sum(axis=1, keepdims=True) # Normalize each row to sum to 1 (L1 normalization)
-
+    ## Check nan
     # nan_mask = np.isnan(X)
     # print(f"NaN mask: {nan_mask}")
-    #
     # nan_indices = np.where(nan_mask)
     # print(f"Indices of NaN values: {nan_indices}")
 
-    true_labels = np.loadtxt(path + 'pamap2_y_no_0_1770131_51', dtype=np.int32)
+    true_labels = np.loadtxt(path / 'pamap2_y_no_0_1770131_51', dtype=np.int32)
+
     n_clusters = 18
     n_iter = 100
-    n_repeats = 5
+    n_repeats = 1
     n_threads = 8
 
     """====================="""
@@ -62,23 +54,23 @@ if __name__ == '__main__':
     #
     # # Exact L2
     # indices, distances = utils.faiss_kNN(X, k=k_max + 1, n_threads=n_threads)
-    # np.save(savePath + "exact_L2_200_indices.npy", indices)    # shape: (n, k), dtype: int64
-    # np.save(savePath + "exact_L2_200_distances.npy", distances)  # shape: (n, k), dtype: float32
+    # np.save(savePath / "exact_L2_200_indices.npy", indices)    # shape: (n, k), dtype: int64
+    # np.save(savePath / "exact_L2_200_distances.npy", distances)  # shape: (n, k), dtype: float32
     #
     # # Exact L1
     # nbrs = NearestNeighbors(n_neighbors=k_max + 1, metric='manhattan',n_jobs=n_threads).fit(X)
     # distances, indices = nbrs.kneighbors(X)
-    # np.save(savePath + "exact_L1_200_indices.npy", indices)    # shape: (n, k), dtype: int64
-    # np.save(savePath + "exact_L1_200_distances.npy", distances)  # shape: (n, k), dtype: float32
+    # np.save(savePath / "exact_L1_200_indices.npy", indices)    # shape: (n, k), dtype: int64
+    # np.save(savePath / "exact_L1_200_distances.npy", distances)  # shape: (n, k), dtype: float32
     #
     # # Exact Cosine
     # X = normalize(X, norm='l2', axis=1)
     # indices, distances = utils.faiss_kNN(X, k=k_max + 1, n_threads=n_threads)
-    # np.save(savePath + "exact_Cosine_200_indices.npy", indices)    # shape: (n, k), dtype: int64
-    # np.save(savePath + "exact_Cosine_200_distances.npy", distances)  # shape: (n, k), dtype: float32
+    # np.save(savePath / "exact_Cosine_200_indices.npy", indices)    # shape: (n, k), dtype: int64
+    # np.save(savePath / "exact_Cosine_200_distances.npy", distances)  # shape: (n, k), dtype: float32
 
     """ Compute Faiss approx kNN (IVF and IVFPQ) """
-    # n_threads = 32
+    # n_threads = 8
     # k_max = 500
     #
     # # Faiss params
@@ -90,14 +82,14 @@ if __name__ == '__main__':
     # indices, distances = utils.faiss_approx_kNN_IVF(X, k=k_max + 1, n_list = nlist, n_probe = nprobe, n_threads=n_threads)
     # indices = indices.astype(np.int32)
     # distances = distances.astype(np.float32)
-    # np.save(savePath + "ivf_512_10_L2_500_indices.npy", indices)    # shape: (n, k), dtype: int64
-    # np.save(savePath + "ivf_512_10_L2_500_distances.npy", distances)  # shape: (n, k), dtype: float32
+    # np.save(savePath / "ivf_512_10_L2_500_indices.npy", indices)    # shape: (n, k), dtype: int64
+    # np.save(savePath / "ivf_512_10_L2_500_distances.npy", distances)  # shape: (n, k), dtype: float32
     #
     # indices, distances = utils.faiss_approx_kNN_IVFPQ(X, k=k_max + 1, n_subquantizer=m, n_list = nlist, n_probe = nprobe, n_threads=n_threads)
     # indices = indices.astype(np.int32)
     # distances = distances.astype(np.float32)
-    # np.save(savePath + "ivfpq_512_10_3_L2_500_indices.npy", indices)    # shape: (n, k), dtype: int64
-    # np.save(savePath + "ivfpq_512_10_3_L2_500_distances.npy", distances)  # shape: (n, k), dtype: float32
+    # np.save(savePath / "ivfpq_512_10_3_L2_500_indices.npy", indices)    # shape: (n, k), dtype: int64
+    # np.save(savePath / "ivfpq_512_10_3_L2_500_distances.npy", distances)  # shape: (n, k), dtype: float32
     #
     # # Cosine
     # X = normalize(X, norm='l2', axis=1)
@@ -105,14 +97,14 @@ if __name__ == '__main__':
     # indices, distances = utils.faiss_approx_kNN_IVF(X, k=k_max + 1, n_list = nlist, n_probe = nprobe, n_threads=n_threads)
     # indices = indices.astype(np.int32)
     # distances = distances.astype(np.float32)
-    # np.save(savePath + "ivf_512_10_Cosine_500_indices.npy", indices)    # shape: (n, k), dtype: int64
-    # np.save(savePath + "ivf_512_10_Cosine_500_distances.npy", distances)  # shape: (n, k), dtype: float32
+    # np.save(savePath / "ivf_512_10_Cosine_500_indices.npy", indices)    # shape: (n, k), dtype: int64
+    # np.save(savePath / "ivf_512_10_Cosine_500_distances.npy", distances)  # shape: (n, k), dtype: float32
     #
     # indices, distances = utils.faiss_approx_kNN_IVFPQ(X, k=k_max + 1, n_subquantizer=m, n_list = nlist, n_probe = nprobe, n_threads=n_threads)
     # indices = indices.astype(np.int32)
     # distances = distances.astype(np.float32)
-    # np.save(savePath + "ivfpq_512_10_3_Cosine_500_indices.npy", indices)    # shape: (n, k), dtype: int64
-    # np.save(savePath + "ivfpq_512_10_3_Cosine_500_distances.npy", distances)  # shape: (n, k), dtype: float32
+    # np.save(savePath / "ivfpq_512_10_3_Cosine_500_indices.npy", indices)    # shape: (n, k), dtype: int64
+    # np.save(savePath / "ivfpq_512_10_3_Cosine_500_distances.npy", distances)  # shape: (n, k), dtype: float32
 
     """ Compute NNDescent """
     # n_threads = 8
@@ -129,7 +121,6 @@ if __name__ == '__main__':
     # t1 = timeit.default_timer()
     #
     # # Warmup njit
-    #
     # # NNDescent(X, n_neighbors=k_max, random_state=seed, tree_init=True,
     # #           # init_graph=indices,
     # #           metric=dist, n_iters=1, n_jobs=n_threads)
@@ -147,557 +138,153 @@ if __name__ == '__main__':
     # indices = indices.astype(np.int32)
     # distances = distances.astype(np.float32)
     #
-    # np.save(savePath + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy", indices)    # shape: (n, k), dtype: int64
-    # np.save(savePath + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy", distances)  # shape: (n, k), dtype: float32
+    # np.save(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy", indices)    # shape: (n, k), dtype: int64
+    # np.save(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy", distances)  # shape: (n, k), dtype: float32
 
 
     """====================="""
 
     """ iGraph propagation with precomputed Faiss/NNDescent symmetric kNN (need +1 as Faiss consider the point itself as part of kNN) """
-    n_threads = 8
-
-    # indices = np.load(savePath + "ivfpq_512_10_3_L2_500_indices.npy")    # shape: (n, k), dtype: int64
-    # distances = np.load(savePath + "ivfpq_512_10_3_L2_500_distances.npy")  # shape: (n, k), dtype: float32
-    # indices = np.load(savePath + "ivf_512_10_L2_500_indices.npy")    # shape: (n, k), dtype: int64
-    # distances = np.load(savePath + "ivf_512_10_L2_500_distances.npy")  # shape: (n, k), dtype: float32
-
-    # # NNDescent params
-    n_iters = 1
-    n_trees = 16
-    k_max = 50
-    leafSize = 50
-    dist = "euclidean"
-
-    indices = np.load(savePath + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
-    distances = np.load(savePath + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
-
-    # n_neighbors_list = [4, 8, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48]
-    # n_neighbors_list = [10, 12, 14, 16, 18, 20]
-    n_neighbors_list = [16, 20, 24, 28, 32]
-    # n_neighbors_list = [2, 3, 4, 5, 6]
-
-    # n_neighbors_list = [10]
-    #
-    print(n_neighbors_list)
-
-    for n_neighbors in n_neighbors_list:
-
-        print('n_neighbors: ', n_neighbors)
-        K = min(n_neighbors + 1, k_max) # Faiss, NNDescent: + 1
-
-        # unweighted_graph = utils.fast_unweighted_sym_knng_igraph(indices[:, 1 : K], verbose=False)
-        #
-        # for i in range(n_repeats):
-        #
-        #     t1 = timeit.default_timer()
-        #     labels = utils.run_LPA(unweighted_graph)
-        #     t2 = timeit.default_timer()
-        #     print('LPA Time: {}'.format(t2 - t1))
-        #     lpa_ans = getMetric(labels, true_labels)
-        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
-        # Note: exp_weight=False gives slightly higher accuracy, need + 1 for Faiss
-        # Leiden
-        # This is G_k
-        # t1 = timeit.default_timer()
-        # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
-        # t2 = timeit.default_timer()
-        # print('Graph Construction Time: {}'.format(t2 - t1))
-        #
-        # # Mutual G_k
-        # # weighted_graph = utils.fast_weighted_mutual_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
-        #
-        # for i in range(n_repeats):
-        #
-        #     t1 = timeit.default_timer()
-        #     labels = utils.run_leiden(weighted_graph)
-        #     t2 = timeit.default_timer()
-        #     print('Leiden Time: {}'.format(t2 - t1))
-        #     lpa_ans = getMetric(labels, true_labels)
-        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-        #
-        # # Louvain
-        # # This is G_k
-        # # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, :n_neighbors], distances[:, :n_neighbors], use_exp_weight=False,verbose=False)
-        #
-        # for i in range(n_repeats):
-        #
-        #     t1 = timeit.default_timer()
-        #     labels = utils.run_louvain(weighted_graph)
-        #     t2 = timeit.default_timer()
-        #     print('Louvain Time: {}'.format(t2 - t1))
-        #     lpa_ans = getMetric(labels, true_labels)
-        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
-        # DANE
-        t1 = timeit.default_timer()
-        dbs = cluprop.cluprop(n, d)
-        dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors)
-        lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
-        print(' '.join(f"{x:.4f}" for x in lpa_ans))
-        t2 = timeit.default_timer()
-        print('DANE Time: {}'.format(t2 - t1))
-
-    """====================="""
-    """ Test param k_expand for DANE """
     # n_threads = 8
-    # n_trees = 8
+    # indices = np.load(savePath / "ivfpq_512_10_3_L2_500_indices.npy")    # shape: (n, k), dtype: int64
+    # distances = np.load(savePath / "ivfpq_512_10_3_L2_500_distances.npy")  # shape: (n, k), dtype: float32
+    # indices = np.load(savePath / "ivf_512_10_L2_500_indices.npy")    # shape: (n, k), dtype: int64
+    # distances = np.load(savePath / "ivf_512_10_L2_500_distances.npy")  # shape: (n, k), dtype: float32
+
+    # NNDescent params
     # n_iters = 1
-    # k_max = 20
-    # leafSize = 20
-    # dist="euclidean"
+    # n_trees = 8
+    # k_max = 50
+    # leafSize = 50
+    # dist = "euclidean"
     #
-    # # indices = np.load(path + "ivf_512_10_L2_500_indices.npy")    # shape: (n, k), dtype: int64
-    # # distances = np.load(path + "ivf_512_10_L2_500_distances.npy")  # shape: (n, k), dtype: float32
-    # # indices = np.load(path + "ivfpq_512_10_3_L2_500_indices.npy")    # shape: (n, k), dtype: int64
-    # # distances = np.load(path + "ivfpq_512_10_3_L2_500_distances.npy")  # shape: (n, k), dtype: float32
-    # indices = np.load(path + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
-    # distances = np.load(path + f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
+    # indices = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
+    # distances = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
     #
-    # # print('shape of array :', indices.shape)
-    # # print(indices[0, 0 : 10])
-    # # print(distances[0, 0 : 10])
-    #
-    # dbs = cluprop.cluprop(n, d)
-    # dbs.set_threads(n_threads)
-    #
-    #
-    # # n_neighbors_list = [4, 8, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48]
-    # # n_neighbors_list = [4, 8, 12, 14, 16, 20, 24, 28, 32]
-    # n_neighbors_list = [5, 10, 15, 20, 25]
-    # # n_neighbors_list = [ 25, 30, 35, 40, 45, 50]
-    # # n_neighbors_list = [int(x * 2) for x in n_neighbors_list]
-    # # n_neighbors_list = [30, 40, 50, 60, 70, 80]
-    # # n_neighbors_list = [90, 100, 120, 130, 140, 150]
     # # n_neighbors_list = [10, 12, 14, 16, 18, 20]
-    # # n_neighbors_list = [20]
+    # n_neighbors_list = [12, 16, 20, 24, 28, 32]
     #
-    # # Larger K is not useful since we have minConnectedDist to limit the propagation.
-    # # This is because points will be added in PQ if having smaller minConnectionDist
-    # # K = 12
-    #
-    # # this param will significantly increase number of clusters (i.e. identifying more noise clusters)
-    # # dbs.set_propagation_cutoff()
-    #
+    # #
     # print(n_neighbors_list)
     #
     # for n_neighbors in n_neighbors_list:
     #
-    #     print('n_neighbors: ', n_neighbors) # k' in the paper
+    #     print('n_neighbors: ', n_neighbors)
+    #     K = min(n_neighbors + 1, k_max) # Faiss, NNDescent: + 1
     #
-    #     # clupig
+    #     # unweighted_graph = utils.fast_unweighted_sym_knng_igraph(indices[:, 1 : K], verbose=False)
+    #     #
+    #     # for i in range(n_repeats):
+    #     #
+    #     #     t1 = timeit.default_timer()
+    #     #     labels = utils.run_LPA(unweighted_graph)
+    #     #     t2 = timeit.default_timer()
+    #     #     print('LPA Time: {}'.format(t2 - t1))
+    #     #     lpa_ans = getMetric(labels, true_labels)
+    #     #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    #
+    #     # # Note: exp_weight=False gives slightly higher accuracy, need + 1 for Faiss
+    #     # # Leiden
     #     t1 = timeit.default_timer()
+    #     weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
+    #     t2 = timeit.default_timer()
+    #     print('Graph Construction Time: {}'.format(t2 - t1))
     #
-    #     # G_K where K = ck
-    #     # NNDescent and Faiss consider the point itself, so need to start from 1
-    #     K = min(n_neighbors + 1, k_max)
+    #     # Mutual G_k
+    #     # weighted_graph = utils.fast_weighted_mutual_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
+    #
+    #     for i in range(n_repeats):
+    #
+    #         t1 = timeit.default_timer()
+    #         labels = utils.run_leiden(weighted_graph)
+    #         t2 = timeit.default_timer()
+    #         print('Leiden Time: {}'.format(t2 - t1))
+    #         lpa_ans = getMetric(labels, true_labels)
+    #         print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    #
+    #     # # Louvain
+    #     # # This is G_k
+    #     # # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, :n_neighbors], distances[:, :n_neighbors], use_exp_weight=False,verbose=False)
+    #     #
+    #     # for i in range(n_repeats):
+    #     #
+    #     #     t1 = timeit.default_timer()
+    #     #     labels = utils.run_louvain(weighted_graph)
+    #     #     t2 = timeit.default_timer()
+    #     #     print('Louvain Time: {}'.format(t2 - t1))
+    #     #     lpa_ans = getMetric(labels, true_labels)
+    #     #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    #
+    #     # DANE
+    #     t1 = timeit.default_timer()
+    #     dbs = cluprop.cluprop()
+    #     dbs.n_threads = n_threads
+    #
     #     dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors)
-    #     lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
-    #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-    #
     #     t2 = timeit.default_timer()
     #     print('DANE Time: {}'.format(t2 - t1))
-    #
-    #     # G_kmax where ck <= K_max,
-    #     K = k_max
-    #
-    #     t1 = timeit.default_timer()
-    #     dbs.dnp_from_knn(indices[:, 1 : K], distances[:, 1 : K], n_neighbors, c=c)
     #     lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
     #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-    #
-    #     t2 = timeit.default_timer()
-    #     print('sVDC Time: {}'.format(t2 - t1))
+
 
     """====================="""
+    """ Test param k_expand for DANE where k_expand > k"""
+    n_threads = 8
+    n_trees = 8
+    n_iters = 1
+    k_max = 50
+    leafSize = 50
+    dist="euclidean"
 
-    """ kNN LPA """
-    # n_neighbors = 24
-    # n_threads = 32
-    # print("Neighbors: ", n_neighbors)
-    # t1 = timeit.default_timer()
-    # G = utils.build_knn_graph_faiss(X, k=n_neighbors, n_threads=n_threads)
-    # t2 = timeit.default_timer()
-    # print('Faiss Time: {}'.format(t2 - t1))
-    # labels = label_propagation(G) # return [ [1, 3, 5], [2, 4, 6], [10, 11, 7, 8, 9] ], each list is a cluster
-    # t2 = timeit.default_timer()
-    # print('kNN LPA Time: {}'.format(t2 - t1))
-    #
-    # lpa_ans = getMetric(labels, true_labels)
-    # print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    indices = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
+    distances = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
 
-    """ kNN LPA - REPEAT """
-    # n_neighbors_list = [12, 16, 20, 24, 28, 32]
-    # n_threads = 8
-    #
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     print("Neighbors: ", n_neighbors)
-    #     G = utils.build_knn_graph_faiss(X, k=n_neighbors, n_threads=n_threads)
-    #
-    #     for i in range(n_repeats):
-    #
-    #         labels = utils.label_propagation(G) # return [ [1, 3, 5], [2, 4, 6], [10, 11, 7, 8, 9] ], each list is a cluster
-    #         lpa_ans = getMetric(labels, true_labels)
-    #         print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    # print('shape of array :', indices.shape)
+    # print(indices[0, 0 : 10])
+    # print(distances[0, 0 : 10])
 
-    """ Symmetric kNN LPA """
-    # n_neighbors = 24
-    # n_iter = 100
-    # n_threads = 32
-    #
-    # t1 = timeit.default_timer()
-    # G = utils.build_symmetric_knn_graph_faiss(X, k=n_neighbors, n_threads=n_threads)
-    # t2 = timeit.default_timer()
-    # print('Faiss Time: {}'.format(t2 - t1))
-    # labels = utils.label_propagation(G, max_iter=n_iter) # return [ [1, 3, 5], [2, 4, 6], [10, 11, 7, 8, 9] ], each list is a cluster
-    # t2 = timeit.default_timer()
-    # print('Symmetric kNN LPA Time: {}'.format(t2 - t1))
-    #
-    # lpa_ans = getMetric(labels, true_labels)
-    # print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    dbs = cluprop.cluprop()
+    dbs.n_threads = n_threads
 
-    """ Symmetric LPA - REPEAT """
-    # n_neighbors_list = [12, 16, 20, 24, 28, 32]
-    # n_iter = 100
-    # n_threads = 8
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     print("Neighbors: ", n_neighbors)
-    #
-    #     G = utils.build_symmetric_knn_graph_faiss(X, k=n_neighbors, n_threads=n_threads)
-    #
-    #     for i in range(n_repeats):
-    #         labels = utils.label_propagation(G, max_iter=n_iter) # return [ [1, 3, 5], [2, 4, 6], [10, 11, 7, 8, 9] ], each list is a cluster
-    #         lpa_ans = getMetric(labels, true_labels)
-    #         print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    n_neighbors_list = [5, 10, 15, 20, 25, 30]
 
-    """ Mutual kNN LPA """
-    # n_neighbors = 24
-    # n_threads = 32
-    # print("Neighbors: ", n_neighbors)
-    #
-    # t1 = timeit.default_timer()
-    # G = utils.build_mutual_knn_graph_faiss(X, k=n_neighbors, n_threads=n_threads)
-    # t2 = timeit.default_timer()
-    # print('Faiss Time: {}'.format(t2 - t1))
-    # labels = utils.label_propagation(G)
-    # t2 = timeit.default_timer()
-    # print('Mutual kNN LPA Time: {}'.format(t2 - t1))
-    #
-    # lpa_ans = getMetric(labels, true_labels)
-    # print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    # this param will significantly increase number of clusters (i.e. identifying more noise clusters)
+    # dbs.set_propagation_cutoff()
 
-    """ Mutual kNN LPA - REPEAT """
-    # n_threads = 8
-    # n_neighbors_list = [50, 100, 150, 200, 250, 300]
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     print("Neighbors: ", n_neighbors)
-    #
-    #     G = utils.build_mutual_knn_graph_faiss(X, k=n_neighbors, n_threads=n_threads)
-    #
-    #     for i in range(n_repeats):
-    #         labels = utils.label_propagation(G)
-    #         lpa_ans = getMetric(labels, true_labels)
-    #         print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    print(n_neighbors_list)
 
-    """ Faiss symmetric LPA """
-    # n_neighbors = 50
-    # n_iter = 20
-    # n_threads = 32
-    # nlist = 4096      # partition into 4096 clusters
-    # nprobe = 64       # probe 64 clusters at query time
-    #
-    # t1 = timeit.default_timer()
-    # G = utils.build_approx_symmetric_knn_graph_faiss(X, k=n_neighbors, n_list = nlist, n_probe = nprobe, n_threads=n_threads)
-    # t2 = timeit.default_timer()
-    # print('Faiss Time: {}'.format(t2 - t1))
-    #
-    # labels = utils.label_propagation(G, max_iter=n_iter)
-    # t2 = timeit.default_timer()
-    # print('Faiss LPA Time: {}'.format(t2 - t1))
-    #
-    # lpa_ans = getMetric(labels, true_labels)
-    # print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    for n_neighbors in n_neighbors_list:
 
-    """ Faiss symmetric LPA - REPEAT """
+        print('n_neighbors: ', n_neighbors) # k' in the paper
 
-    # n_neighbors_list = [50]
-    # n_iter = 20
-    # n_threads = 8
-    # nlist = 4096      # partition into 4096 clusters
-    # nprobe = 64       # probe 64 clusters at query time
-    #
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     print("Neighbors: ", n_neighbors)
-    #     G = utils.build_approx_symmetric_knn_graph_faiss(X, k=n_neighbors, n_list = nlist, n_probe = nprobe, n_threads=n_threads)
-    #
-    #     for i in range(n_repeats):
-    #
-    #         labels = utils.label_propagation(G, max_iter=n_iter)
-    #         lpa_ans = getMetric(labels, true_labels)
-    #         print(' '.join(f"{x:.4f}" for x in lpa_ans))
+        # clupig
+        t1 = timeit.default_timer()
 
-    """ Scann symmetric kNN LPA """
-    # n_neighbors = 50
-    # n_iter = 20
-    # n_threads = 32
-    # nlist = 4096      # partition into 4096 clusters
-    # nprobe = 64       # probe 64 clusters at query time
-    #
-    # t1 = timeit.default_timer()
-    # G = utils.build_approx_symmetric_knn_graph_scann(X, k=n_neighbors, n_list = nlist, n_probe = nprobe, n_threads=n_threads)
-    # t2 = timeit.default_timer()
-    # print('SCANN Time: {}'.format(t2 - t1))
-    #
-    # labels = utils.label_propagation(G, max_iter=n_iter)
-    #
-    # t2 = timeit.default_timer()
-    # print('SCANN LPA Time: {}'.format(t2 - t1))
-    #
-    # lpa_ans = getMetric(labels, true_labels)
-    # print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
-    """ Scann symmetric kNN LPA - REPEAT """
-    # n_neighbors_list = [50]
-    # n_iter = 20
-    # n_threads = 8
-    # nlist = 4096      # partition into 4096 clusters
-    # nprobe = 64       # probe 64 clusters at query time
-    #
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     print("Neighbors: ", n_neighbors)
-    #
-    #     G = utils.build_approx_symmetric_knn_graph_scann(X, k=n_neighbors, n_list = nlist, n_probe = nprobe, n_threads=n_threads)
-    #
-    #     for i in range(n_repeats):
-    #
-    #         labels = utils.label_propagation(G, max_iter=n_iter)
-    #         lpa_ans = getMetric(labels, true_labels)
-    #         print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
-    """ igraph with scann"""
-    # n_neighbors = 100
-    # n_threads = 32
-    # nlist = 4096      # partition into 4096 clusters
-    # nprobe = 64       # probe 64 clusters at query time
-    #
-    # t1 = timeit.default_timer()
-    # labels = utils.label_propagation_from_scann(X, k=n_neighbors, n_list = nlist, n_probe = nprobe, n_threads=32)
-    # t2 = timeit.default_timer()
-    # print('Scann iGraph Time: {}'.format(t2 - t1))
-    #
-    # lpa_ans = getMetric(labels, true_labels)
-    # print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
-    """ All LPA with symmetric kNN - REPEAT """
-
-    # X = X.astype(np.float32)
-    # n, d = X.shape
-    # n_threads = 32
-    #
-    # # X = normalize(X, norm='l2', axis=1)
-    #
-    # # Cosine or L2
-    # # 1. Create FAISS index
-    # faiss.omp_set_num_threads(n_threads) # This is also default
-    # nlist = 512 #4096  # the number of clusters
-    # nprobe = 10 # 64
-    #
-    # k_max = 100
-    # indices, distances = utils.faiss_approx_kNN(X, k=k_max + 1, n_list = nlist, n_probe = nprobe, n_threads=n_threads)
-    #
-    # dbs = clupig.clupig(n, d)
-    # c = 1
-    #
-    # # Form  graph from indices and distances
-    # # unweighted_graph = utils.igraph_form_unweighted_sym_KNN_graph(indices)
-    # weighted_graph = utils.igraph_form_weighted_sym_KNN_graph(indices, distances)
-    #
-    # n_neighbors_list = [50, 100]
-    #
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     print('n_neighbors: ', n_neighbors)
-    #
-    #     # clupig
-    #     t1 = timeit.default_timer()
-    #     dbs.label_propagation(indices[:, :n_neighbors + 1].tolist(), distances[:, :n_neighbors + 1].tolist(), n_neighbors, c=c)
-    #     t2 = timeit.default_timer()
-    #     print('clupig Time: {}'.format(t2 - t1))
-    #
-    #     labels = np.array(dbs.labels_)
-    #     lpa_ans = getMetric(labels, true_labels)
-    #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-    #
-    #     # LPA
-    #     # t1 = timeit.default_timer()
-    #     # labels = utils.run_LPA(unweighted_graph)
-    #     # t2 = timeit.default_timer()
-    #     # print('LPA Time: {}'.format(t2 - t1))
-    #     # lpa_ans = getMetric(labels, true_labels)
-    #     # print(' '.join(f"{x:.4f}" for x in lpa_ans))
-    #
-    #     # Leiden
-    #     t1 = timeit.default_timer()
-    #     labels = utils.run_leiden(weighted_graph)
-    #     t2 = timeit.default_timer()
-    #     print('Leiden Time: {}'.format(t2 - t1))
-    #     lpa_ans = getMetric(labels, true_labels)
-    #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-    #
-    #     # Louvain
-    #     t1 = timeit.default_timer()
-    #     labels = utils.run_louvain(weighted_graph)
-    #     t2 = timeit.default_timer()
-    #     print('Louvain Time: {}'.format(t2 - t1))
-    #     lpa_ans = getMetric(labels, true_labels)
-    #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
-    """ clupig LPA with approx symmetric kNN Faiss - REPEAT """
-
-    # X = X.astype(np.float32)
-    # n, d = X.shape
-    #
-    # n_threads = 32
-    # nlist = 4096
-    # nprobe = 64
-    # k_max = 200
-    # n_neighbors_list = [110, 120, 130, 140, 150, 160, 170, 180, 190, 200]
-    #
-    # # L2
-    # faiss.omp_set_num_threads(n_threads) # This is also default
-    # t1 = timeit.default_timer()
-    # quantizer = faiss.IndexFlatL2(d)  # the other index
-    # index = faiss.IndexIVFFlat(quantizer, d, nlist)
-    # index.nprobe = nprobe
-    # # 8 specifies that each sub-vector is encoded as 8 bits
-    # index.train(X)
-    # index.add(X)
-    #
-    # t2 = timeit.default_timer()
-    # print('Construction time of Faiss IVF: {}'.format(t2 - t1))
-    #
-    # # 2. Perform search (note: k+1 because the closest is the point itself)
-    # distances, indices = index.search(X, k_max + 1)
-    # t2 = timeit.default_timer()
-    # print('Build and query time of Faiss IVF: {}'.format(t2 - t1))
-    #
-    #
-    # dbs = clupig.clupig(n, d)
-    # c = 1
-    #
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     # 2. Perform search (note: k+1 because the closest is the point itself)
-    #     dbs.label_propagation(indices[:, :n_neighbors + 1].tolist(), distances[:, :n_neighbors + 1].tolist(), n_neighbors, c=c)
-    #     labels = np.array(dbs.labels_)
-    #     lpa_ans = getMetric(labels, true_labels)
-    #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
-    #
-    # # Cosine
-    # X = normalize(X, norm='l2', axis=1)
-    # n_threads = 32
-    # nlist = 4096
-    # nprobe = 64
-    # k_max = 200
-    # n_neighbors_list = [110, 120, 130, 140, 150, 160, 170, 180, 190, 200]
-    #
-    # faiss.omp_set_num_threads(n_threads) # This is also default
-    # t1 = timeit.default_timer()
-    # quantizer = faiss.IndexFlatL2(d)  # the other index
-    # index = faiss.IndexIVFFlat(quantizer, d, nlist)
-    # index.nprobe = nprobe
-    # # 8 specifies that each sub-vector is encoded as 8 bits
-    # index.train(X)
-    # index.add(X)
-    #
-    # t2 = timeit.default_timer()
-    # print('Construction time of Faiss IVF: {}'.format(t2 - t1))
-    #
-    # # 2. Perform search (note: k+1 because the closest is the point itself)
-    # distances, indices = index.search(X, k_max + 1)
-    # t2 = timeit.default_timer()
-    # print('Build and query time of Faiss IVF: {}'.format(t2 - t1))
-    #
-    #
-    # dbs = clupig.clupig(n, d)
-    # c = 1
-    #
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     # 2. Perform search (note: k+1 because the closest is the point itself)
-    #     dbs.label_propagation(indices[:, :n_neighbors + 1].tolist(), distances[:, :n_neighbors + 1].tolist(), n_neighbors, c=c)
-    #     labels = np.array(dbs.labels_)
-    #     lpa_ans = getMetric(labels, true_labels)
-    #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
+        # G_K where K = ck
+        # NNDescent and Faiss consider the point itself, so need to start from 1
+        K = min(n_neighbors + 1, k_max)
+        dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors)
+        t2 = timeit.default_timer()
+        print('DANE Time: {}'.format(t2 - t1))
+        lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
+        print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
 
-    """ Manual distance computation (L1 and JS) LPA - REPEAT """
-    # k_max = 14
-    # knn_indices = mmap_bin(path + 'mnist_all_X_kNN_L1_14.bin', n, k_max)
-    # n_neighbors_list = [2, 4, 6, 8, 10, 12, 14]
+        # G_kmax where ck <= K_max,
+        K = k_max
+        k_expand = min(2 * n_neighbors, k_max)
+        t1 = timeit.default_timer()
+        dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors, k_expand)
+        t2 = timeit.default_timer()
+        print('DANE Time with k_expand: {}'.format(t2 - t1))
+        lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
+        print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
-    # k_max = 32
-    # knn_indices = mmap_bin(path + 'mnist_all_X_kNN_JS_32.bin', n, k_max)
-    # n_neighbors_list = [12, 16, 20, 24, 28, 32]
 
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     print("Neighbors: ", n_neighbors)
-    #
-    #     # 3. Build undirected graph
-    #     edges = set()
-    #
-    #     for i in range(n):
-    #         for j in indices[i]:
-    #             if i != j:
-    #                 edge = tuple(sorted((i, j)))  # ensures (i,j) and (j,i) treated as same
-    #                 edges.add(edge)
-    #
-    #     G = nx.Graph()
-    #     G.add_edges_from(edges)
-    #     print("Number of nodes: ", G.number_of_nodes())
-    #
-    #     for i in range(n_repeats):
-    #         labels = utils.label_propagation(G)
-    #         lpa_ans = getMetric(labels, true_labels)
-    #         print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
-    """ Faiss LPA with n_clusters """
-    # n_neighbors = 12
-    # print("Neighbors: ", n_neighbors)
-    #
-    # t1 = timeit.default_timer()
-    # G = build_knn_graph_faiss(X, k=n_neighbors)
-    # t2 = timeit.default_timer()
-    # print('Faiss Time: {}'.format(t2 - t1))
-    # labels = label_propagation_k_clusters(G)
-    # t2 = timeit.default_timer()
-    # print('Faiss LPA with n_cluster Time: {}'.format(t2 - t1))
-    #
-    # lpa_k_ans = getMetric(labels, true_labels)
-    # print(' '.join(f"{x:.4f}" for x in lpa_k_ans))
-
-    """====================="""
-
-    """ Umap & Hdbscan"""
-    # t1 = timeit.default_timer()
-    # # 1. Reduce dimensionality, UMAP defaults to n_components=2
-    # X_umap = UMAP(n_neighbors=15, min_dist=0.1, metric='cosine').fit_transform(X)
-    # # 2. Use HDBSCAN in 2D or 10D
-    # labels = HDBSCAN(min_cluster_size=10).fit_predict(X_umap)
-    # t2 = timeit.default_timer()
-    # print('UMAP & HDBSCAN Time: {}'.format(t2 - t1))
-    #
-    # umap_ans = getMetric(labels, true_labels)
-    # print(' '.join(f"{x:.4f}" for x in umap_ans))
 
     """ Hdbscan """
+    ## Note: HDBSCAN is very slow - it took 1 hour on Mnist 70K points
+    # import hdbscan
     # t1 = timeit.default_timer()
     # # Run HDBSCAN directly
     # clusterer = hdbscan.HDBSCAN(
@@ -714,44 +301,53 @@ if __name__ == '__main__':
     # print(' '.join(f"{x:.4f}" for x in hdbscan_ans))
 
     """ sOptics"""
-    # eps = 20000
-    # minPts = 12
-    # run_sOptics(X, minPts, eps)
+    # eps = 50
+    # dist = "L2"
+    # sigma = 40
+    # minPts = 50
+    # n_threads = 8
+    # k = 10
+    # m = 100
+    # utils.run_sOptics(X, minPts, eps, dist, k, m, sigma, n_threads)
 
     """ sDbscan"""
-    # dist = "L1"
-    # for i in range(5):
-    #     minPts_list = [2, 3, 4, 5, 6, 7]
-    #     eps_list = [5000, 6000, 7000, 8000, 9000, 10000]
+    # dist = "L2"
+    # sigma = 40
+    # k = 10
+    # m = 100
+    # print("sigma: ", sigma)
+    # n_threads = 8
+    # for i in range(1):
+    #     minPts_list = [50]
+    #     eps_list = [6, 9, 12, 15, 18, 21]
     #     for minPts in minPts_list:
     #         print("minPts: ", minPts)
     #         for eps in eps_list:
-    #             ans = run_sDbscan(X, minPts, eps, dist)
-    #             print(' '.join(f"{val:.3f}" for val in ans))
-
-    # run_sDbscan(X, minPts=24, eps=0.13, dist="Cosine", n_threads = 32)
+    #             labels = utils.run_sDbscan(X, minPts, eps, dist, k, m, sigma, n_threads)
+    #             ans = getMetric(labels, true_labels)
+    #             print(' '.join(f"{x:.4f}" for x in ans))
+    # utils.run_sDbscan(X, minPts=50, eps=18, dist, sigma, n_threads = 8)
 
     """ sngDbscan"""
-    # dist = "Cosine"
-    # for i in range(5):
-    #     minPts_list = [12, 16, 20, 24, 28, 32]
-    #     eps_list = [0.1, 0.11, 0.12, 0.13, 0.14, 0.15]
+    # dist = "L2"
+    # n_threads = 8
+    # p = 0.01
+    # for i in range(1):
+    #     minPts_list = [50]
+    #     eps_list = [6, 9, 12, 15, 18, 21]
     #     for minPts in minPts_list:
     #         print("minPts: ", minPts)
     #         for eps in eps_list:
-    #             ans = run_sngDbscan(X, minPts, eps, dist)
-    #             print(' '.join(f"{val:.3f}" for val in ans))
-
-    # run_sngDbscan(X, minPts=24, eps=0.13, dist="Cosine", n_threads = 32)
-
-    """====================="""
-
+    #             labels = utils.run_sngDbscan(X, minPts, eps, dist, p, n_threads)
+    #             ans = getMetric(labels, true_labels)
+    #             print(' '.join(f"{x:.4f}" for x in ans))
+    # utils.run_sngDbscan(X, minPts=50, eps=15, dist="L2", p, n_threads)
 
     """====================="""
 
     """ faiss k-mean """
     # n_threads = 8
-    # n_iter = 40
+    # n_iter = 20
     #
     # t1 = timeit.default_timer()
     # labels = utils.faiss_kmeans(X, n_clusters, n_threads=n_threads)
@@ -771,14 +367,15 @@ if __name__ == '__main__':
     # print(' '.join(f"{x:.4f}" for x in sci_kmean_ans))
 
     """ scikit spectral clustering needs O(n^2) dense - so use sparse implemented version """
+    ### This takes significant time, perhaps due to the cost of exact kNN graph
     # t1 = timeit.default_timer()
     # metric = "euclidean"
     # labels = utils.spectral_clustering(
     #     X,
     #     n_clusters=n_clusters,
-    #     k=50,
+    #     k=20,
     #     metric=metric,
-    #     mutual=True,          # try False for symmetric-kNN
+    #     mutual=False,          # try False for symmetric-kNN
     #     sigma="auto",         # or a float, or ("median-k", 2.0)
     #     laplacian="sym",
     #     random_state=0
@@ -789,16 +386,16 @@ if __name__ == '__main__':
     # spectral_ans = getMetric(labels, true_labels)
     # print(' '.join(f"{x:.4f}" for x in spectral_ans))
     #
-    # # There is -1 as it is not not connected to the largest component, need to increase k
+    # # There is -1 as it is not connected to the largest component, need to increase k
     # vals, counts = np.unique(labels, return_counts=True)
     # for v, c in zip(vals, counts):
     #     print(f"{v}: {c}")
 
     """ Nystrom kernel kmean++ """
-    # Compute pairwise Euclidean distances over Subsample to avoid O(n^2) for large MNIST
-    # n_samples = 1000
+    # # Compute pairwise Euclidean distances over Subsample to avoid O(n^2) for large MNIST
+    # n_samples = 100
     # X_sample = X[np.random.choice(len(X), n_samples, replace=False)]
-    # dists = pairwise_distances(X_sample, metric="euclidean")
+    # dists = pairwise_distances(X_sample, metric="euclidean", n_jobs = n_threads)
     # median_dist = np.median(dists)
     # #
     # # Recommended gamma:
@@ -819,12 +416,11 @@ if __name__ == '__main__':
     # Compute pairwise Euclidean distances over Subsample to avoid O(n^2) for large MNIST
     # n_samples = 1000
     # X_sample = X[np.random.choice(len(X), n_samples, replace=False)]
-    # dists = pairwise_distances(X_sample, metric="euclidean")
+    # dists = pairwise_distances(X_sample, metric="euclidean", n_jobs = n_threads)
     # median_dist = np.median(dists)
     # #
     # # Recommended gamma:
     # gamma = 1 / (2 * median_dist ** 2)
-    #
     #
     # print("Gamma: ", gamma)
     # print("n_samples: ", n_samples)

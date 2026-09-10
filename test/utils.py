@@ -2,12 +2,12 @@ import os
 
 # must set before import
 
-# os.environ["MKL_NUM_THREADS"] = "8"
-# os.environ["OPENBLAS_NUM_THREADS"] = "8"
-# os.environ["NUMEXPR_NUM_THREADS"] = "8"
-# os.environ["VECLIB_MAXIMUM_THREADS"] = "8"
-# os.environ["OMP_NUM_THREADS"] = "8"
-# os.environ["FAISS_NUM_THREADS"] = "8"
+os.environ["MKL_NUM_THREADS"] = "8"
+os.environ["OPENBLAS_NUM_THREADS"] = "8"
+os.environ["NUMEXPR_NUM_THREADS"] = "8"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "8"
+os.environ["OMP_NUM_THREADS"] = "8"
+os.environ["FAISS_NUM_THREADS"] = "8"
 
 # os.environ["MKL_NUM_THREADS"] = "1"
 # os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -19,6 +19,7 @@ import os
 # import sDbscan
 import faiss
 import hdbscan
+import sDbscan
 import numpy as np
 import math
 import igraph as ig
@@ -600,43 +601,7 @@ def faiss_kNN(X, k=10, n_threads=8):
 
     return indices, distances
 
-def scann_approx_kNN(X, k=10, n_list = 100, n_probe = 10):
-    """
-    Run label propagation clustering using Faiss + iGraph.
-
-    Parameters:
-    - X: np.ndarray of shape (n, d)
-    - k: number of nearest neighbors (default: 10)
-    - metric: 'squared_l2' or 'dot_product'
-
-    Returns:
-    - labels: list of cluster labels for each point
-    """
-
-    X = X.astype(np.float32)
-    n, d = X.shape
-
-    print("nlist = ", n_list)
-    print("nprobe = ", n_probe)
-
-    t1 = timeit.default_timer()
-    searcher = scann.scann_ops_pybind.builder(X, k, "dot_product").tree(
-        num_leaves=n_list, num_leaves_to_search=n_probe, training_sample_size=n).score_ah(
-        2, anisotropic_quantization_threshold=0.2).reorder(100).build()
-    t2 = timeit.default_timer()
-    print('Construction time of Scann: {}'.format(t2 - t1))
-
-    indices, distances = searcher.search_batched(X)
-    indices = indices.astype(np.int32)
-    distances = distances.astype(np.float32)  # optional, if you need float32
-
-    t2 = timeit.default_timer()
-    print('Build and query time of Scann: {}'.format(t2 - t1))
-
-    return indices, distances
-
 #============================================================================
-
 def igraph_form_unweighted_sym_KNN_graph(indices, verbose=False):
 
     t1 = timeit.default_timer()
@@ -1372,40 +1337,6 @@ def nx_form_approx_unweighted_sym_KNN_graph_Faiss(X, k=10, n_list = 100, n_probe
     # 3. Build undirected graph
     return build_sym_knn_graph_parallel(indices, n_jobs=n_threads)
 
-def nx_form_approx_unweighted_sym_KNN_graph_Scann(X, k=10, n_list = 100, n_probe = 10, n_threads=8):
-
-    X = X.astype(np.float32)
-    n, d = X.shape
-
-    indices, distances = scann_approx_kNN(X, k + 1, n_list=n_list, n_probe=n_probe)
-
-    # 3. Build undirected graph
-    return build_sym_knn_graph_parallel(indices, n_jobs=n_threads)
-
-#===========================================================================================================
-
-def igraph_label_propagation_from_scann(X, k=10, n_list = 100, n_probe = 10):
-    """
-    Run label propagation clustering using ScaNN + iGraph.
-
-    Parameters:
-    - X: np.ndarray of shape (n, d)
-    - k: number of nearest neighbors (default: 10)
-    - metric: 'squared_l2' or 'dot_product'
-
-    Returns:
-    - labels: list of cluster labels for each point
-    """
-
-    n, d = X.shape
-
-    indices, distances = scann_approx_kNN(X, k + 1, n_list, n_probe)
-
-    G = igraph_form_unweighted_sym_KNN_graph(indices)
-    labels = run_LPA(G)
-
-    return labels
-
 #===========================================================================================================
 
 def density_peak_eps(X, dc=None, percentile=2.0, top_k=5, plot_decision=False):
@@ -1542,7 +1473,7 @@ def density_peak_clustering_faiss(X, k=30, dc=None, n_threads=8):
     return labels, rho, delta
 
 #===========================================================================================================
-def run_sOptics(X, minPts, eps, n_threads=8):
+def run_sOptics(X, minPts, eps, dist, k=10, m=100, sigma=40, n_threads=8):
 
     """
     We test fit_sOptics
@@ -1551,20 +1482,16 @@ def run_sOptics(X, minPts, eps, n_threads=8):
     n, d = np.shape(X)
     X = np.transpose(X)
 
-
     # Param
     numProj = 1024
-    k = 5
-    m = 100
     numEmbed = 1024
-    sigma = 200  # L2: 2600, L1: 16000 | covtype: L2 200
-    dist = "L2"
+    # sigma = 200  # Mnist: L2: 2600, L1: 16000 | covtype: L2 200 | pamap2: L2 = 40
     clusterNoise = 0
     output = 'sOptics'
     numThreads = n_threads
     verbose = True
     intervalSampling = 0.4
-    samplingRatio = 0.02
+    samplingRatio = 0.01
     seed = -1
 
     dbs = sDbscan.sDbscan(n, d)
@@ -1598,22 +1525,19 @@ def run_sOptics(X, minPts, eps, n_threads=8):
     ax2.plot(sOptics)
     plt.show()
 
-def run_sDbscan(X, minPts, eps, dist = "Cosine", sigma=2600, n_threads=8):
+def run_sDbscan(X, minPts, eps, dist = "Cosine", k = 10, m = 100, sigma=2600, n_threads=8):
 
     n, d = np.shape(X)
     X = np.transpose(X)
 
     # Param
     numProj = 1024
-    k = 5
-    m = 100
-
     numEmbed =  1024
     clusterNoise = 0
     numThreads = n_threads
     verbose = False
     intervalSampling = 0.4
-    samplingRatio = 0.01
+    samplingRatio = 0.01 # default for sngDbscan
     seed = -1
     output = ""
 
@@ -1628,7 +1552,7 @@ def run_sDbscan(X, minPts, eps, dist = "Cosine", sigma=2600, n_threads=8):
 
     return dbs.labels_
 
-def run_sngDbscan(X, minPts, eps, dist = "Cosine", n_threads=8):
+def run_sngDbscan(X, minPts, eps, dist = "Cosine", p = 0.001, n_threads=8):
 
     n, d = np.shape(X)
     X = np.transpose(X)
@@ -1644,7 +1568,7 @@ def run_sngDbscan(X, minPts, eps, dist = "Cosine", n_threads=8):
     numThreads = n_threads
     verbose = False
     intervalSampling = 0.4
-    samplingRatio = 1 # 0.01 for sngDBSCAN, 1 for exact Dbscan with better memory than scikit dbscan
+    samplingRatio = p # 0.001 for sngDBSCAN of million points, 1 for exact Dbscan with better memory than scikit dbscan
     seed = -1
     output = ""
 

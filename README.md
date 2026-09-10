@@ -17,7 +17,6 @@ The Python extension accepts directed k-NN indices and distances, builds a symme
 - Python 3.7 or newer
 - A C++17 compiler
 - Eigen 3
-- Boost headers
 - OpenMP
 - pybind11 (a copy is included in this repository)
 
@@ -36,7 +35,7 @@ On Linux, the build uses OpenMP and enables `-march=native`. A wheel built on on
 On macOS, install an OpenMP runtime such as Homebrew's `libomp` before building:
 
 ```bash
-brew install libomp eigen boost
+brew install libomp eigen
 python -m pip install .
 ```
 
@@ -66,7 +65,7 @@ print(labels)
 
 ```python
 model = cluprop.cluprop()
-model.set_threads(n_threads)
+model.n_threads = n_threads
 model.clear()
 
 model.knn_dane(indices, distances, k)
