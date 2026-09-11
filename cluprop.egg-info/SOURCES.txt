@@ -1,4 +1,5 @@
 README.md
+pyproject.toml
 setup.py
 cluprop.egg-info/PKG-INFO
 cluprop.egg-info/SOURCES.txt
