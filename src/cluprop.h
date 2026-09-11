@@ -23,7 +23,7 @@ public:
     // This is to reduce the number of neighbors to be extended, and improve efficiency.
     // If this flag is true, then we only extend neighbors to min(neighborSize, c * minPts),
     // where neighborSize is the current number of neighbors found, and c is a constant (default 1)
-    bool propagation_cutoff = false;
+    bool propagation_cutoff = true;
 
     // minimum cluster size for cluster expansion - we always expand clusters if the cluster does not have min_cluster_size points
     // When it has enough points, we will only expand if dist(Xi, Xj) < kNN_dist(Xi) + kNN_dist(Xj) - to ensure cluster spreads slowly from dense region to sparse region

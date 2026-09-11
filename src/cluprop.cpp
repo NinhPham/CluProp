@@ -336,7 +336,7 @@ void cluprop::dane_(const int k, const int k_support)
         // vec_density[n] = vec_density[n] != 0.0 ? 1.0 / vec_density[n] : 0.0; // avoid division by zero
 
         vec_expandLimit[n] = Xi_degree; // default expanding to all neighbors
-        if (propagation_cutoff)
+        if (propagation_cutoff) // If this flag is true, we only expand up to k_support points
             vec_expandLimit[n] = min(vec_expandLimit[n], k_support);
 
         if (Xi_degree >= k)
