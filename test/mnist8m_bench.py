@@ -28,7 +28,7 @@ if __name__ == '__main__':
     n = 8100000
     d = 784
 
-    true_labels = np.loadtxt(path + 'mnist8m_y_8100000_784')
+    true_labels = np.loadtxt(path / 'mnist8m_y_8100000_784')
     n_clusters = 10
     n_iter = 20
 
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     """ All ig.LPA with precomputed NNDescent """
 
     n_threads = 8
-    k_max = 100
+    k_max = 80
     dist = "cosine"
 
     # NNDescent params
@@ -91,8 +91,8 @@ if __name__ == '__main__':
     n_iters = 1
 
     print(f"RPT: metric={dist} n_trees={n_trees:2d} leafSize={leafSize:2d} n_iters={n_iters:2d} k_max={k_max:2d}")
-    indices = np.load(savePath / f"nndescent_{n_trees}_{leafSize}_{n_iters}_{dist}_{k_max}_0_indices.npy")    # shape: (n, k), dtype: int32
-    distances = np.load(savePath / f"nndescent_{n_trees}_{leafSize}_{n_iters}_{dist}_{k_max}_0_distances.npy")  # shape: (n, k), dtype: float32
+    indices = np.load(savePath / f"nndescent_{n_trees}_{leafSize}_{n_iters}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int32
+    distances = np.load(savePath / f"nndescent_{n_trees}_{leafSize}_{n_iters}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
 
     indices = indices.astype(np.int32)
     print(indices.shape)
@@ -112,7 +112,7 @@ if __name__ == '__main__':
         print('n_neighbors: ', n_neighbors)
         K = min(n_neighbors + 1, k_max) # PyNNDescent and Faiss consider the point itself in kNN
 
-        # DANE
+        """ Dane """
         t1 = timeit.default_timer()
         dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors)
         t2 = timeit.default_timer()
@@ -120,22 +120,43 @@ if __name__ == '__main__':
         lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
         print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
+        # Remove noise
+        dane_label = np.asarray(dbs.labels_).copy()
+        n = len(dane_label)
+        unique_labels, counts = np.unique(dane_label, return_counts=True)
+        small_clusters = unique_labels[counts < 0.001 * n]
+        small_clusters = small_clusters[small_clusters != -1]
+        dane_label[np.isin(dane_label, small_clusters)] = -1
 
-        t1 = timeit.default_timer()
-        weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1:K], distances[:, 1:K], use_exp_weight=False, verbose = True) # fastest - sometime not work for k = 50
+        # mask = dane_label != -1
+        # dane_label = dane_label[mask]
+        # y_new = true_labels[mask]
+        # lpa_ans = getMetric(np.array(dane_label), y_new)
 
-        t2 = timeit.default_timer()
-        print('Graph Construction Time: {}'.format(t2 - t1))
+        noise_ratio = np.mean(dane_label == -1)
+        # print("Number of noisy points:", num_noise)
+        # print("Noise ratio:", noise_ratio)
+        print(f"Noise percentage: {100 * noise_ratio:.2f}%")
 
-        # del indices, distances
-
-        #### Leiden
-        t1 = timeit.default_timer()
-        labels = utils.run_leiden(weighted_graph)
-        t2 = timeit.default_timer()
-        print('Leiden Time: {}'.format(t2 - t1))
-        lpa_ans = getMetric(labels, true_labels)
+        lpa_ans = getMetric(np.array(dane_label), true_labels)
         print(' '.join(f"{x:.4f}" for x in lpa_ans))
+
+        """ Leiden """
+        # t1 = timeit.default_timer()
+        # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1:K], distances[:, 1:K], use_exp_weight=False, verbose = True) # fastest - sometime not work for k = 50
+        #
+        # t2 = timeit.default_timer()
+        # print('Graph Construction Time: {}'.format(t2 - t1))
+        #
+        # # del indices, distances
+        #
+        # #### Leiden
+        # t1 = timeit.default_timer()
+        # labels = utils.run_leiden(weighted_graph)
+        # t2 = timeit.default_timer()
+        # print('Leiden Time: {}'.format(t2 - t1))
+        # lpa_ans = getMetric(labels, true_labels)
+        # print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
         # Louvain
         # t1 = timeit.default_timer()

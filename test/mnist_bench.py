@@ -200,23 +200,23 @@ if __name__ == '__main__':
         #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
         # Note: exp_weight=False gives slightly higher accuracy
-        # Leiden
-        t1 = timeit.default_timer()
-        weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
-        t2 = timeit.default_timer()
-        print('Graph Construction Time: {}'.format(t2 - t1))
-
-        # Mutual G_k
-        # weighted_graph = utils.fast_weighted_mutual_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
-
-        for i in range(n_repeats):
-
-            t1 = timeit.default_timer()
-            labels = utils.run_leiden(weighted_graph)
-            t2 = timeit.default_timer()
-            print('Leiden Time: {}'.format(t2 - t1))
-            lpa_ans = getMetric(labels, true_labels)
-            print(' '.join(f"{x:.4f}" for x in lpa_ans))
+        # # Leiden
+        # t1 = timeit.default_timer()
+        # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
+        # t2 = timeit.default_timer()
+        # print('Graph Construction Time: {}'.format(t2 - t1))
+        #
+        # # Mutual G_k
+        # # weighted_graph = utils.fast_weighted_mutual_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
+        #
+        # for i in range(n_repeats):
+        #
+        #     t1 = timeit.default_timer()
+        #     labels = utils.run_leiden(weighted_graph)
+        #     t2 = timeit.default_timer()
+        #     print('Leiden Time: {}'.format(t2 - t1))
+        #     lpa_ans = getMetric(labels, true_labels)
+        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
         # # Louvain
         # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, :n_neighbors], distances[:, :n_neighbors], use_exp_weight=False,verbose=False)
@@ -238,10 +238,31 @@ if __name__ == '__main__':
         lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
         print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
-        # k_support
-        dbs.knn_dane(indices[:, : k_max + 1], distances[:, : k_max + 1], n_neighbors, round(1.5 * n_neighbors))
-        lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
+        # Remove noise
+        dane_label = np.asarray(dbs.labels_).copy()
+        n = len(dane_label)
+        unique_labels, counts = np.unique(dane_label, return_counts=True)
+        small_clusters = unique_labels[counts < 0.01 * n]
+        small_clusters = small_clusters[small_clusters != -1]
+        dane_label[np.isin(dane_label, small_clusters)] = -1
+
+        # mask = dane_label != -1
+        # dane_label = dane_label[mask]
+        # y_new = true_labels[mask]
+        # lpa_ans = getMetric(np.array(dane_label), y_new)
+
+        noise_ratio = np.mean(dane_label == -1)
+        # print("Number of noisy points:", num_noise)
+        # print("Noise ratio:", noise_ratio)
+        print(f"Noise percentage: {100 * noise_ratio:.2f}%")
+
+        lpa_ans = getMetric(np.array(dane_label), true_labels)
         print(' '.join(f"{x:.4f}" for x in lpa_ans))
+
+        # k_support
+        # dbs.knn_dane(indices[:, : k_max + 1], distances[:, : k_max + 1], n_neighbors, round(1.5 * n_neighbors))
+        # lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
+        # print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
     """====================="""
 

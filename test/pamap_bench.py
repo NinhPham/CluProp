@@ -145,140 +145,153 @@ if __name__ == '__main__':
     """====================="""
 
     """ iGraph propagation with precomputed Faiss/NNDescent symmetric kNN (need +1 as Faiss consider the point itself as part of kNN) """
-    # n_threads = 8
+
     # indices = np.load(savePath / "ivfpq_512_10_3_L2_500_indices.npy")    # shape: (n, k), dtype: int64
     # distances = np.load(savePath / "ivfpq_512_10_3_L2_500_distances.npy")  # shape: (n, k), dtype: float32
     # indices = np.load(savePath / "ivf_512_10_L2_500_indices.npy")    # shape: (n, k), dtype: int64
     # distances = np.load(savePath / "ivf_512_10_L2_500_distances.npy")  # shape: (n, k), dtype: float32
 
     # NNDescent params
-    # n_iters = 1
-    # n_trees = 8
-    # k_max = 50
-    # leafSize = 50
-    # dist = "euclidean"
-    #
-    # indices = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
-    # distances = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
-    #
-    # # n_neighbors_list = [10, 12, 14, 16, 18, 20]
-    # n_neighbors_list = [12, 16, 20, 24, 28, 32]
-    #
-    # #
-    # print(n_neighbors_list)
-    #
-    # for n_neighbors in n_neighbors_list:
-    #
-    #     print('n_neighbors: ', n_neighbors)
-    #     K = min(n_neighbors + 1, k_max) # Faiss, NNDescent: + 1
-    #
-    #     # unweighted_graph = utils.fast_unweighted_sym_knng_igraph(indices[:, 1 : K], verbose=False)
-    #     #
-    #     # for i in range(n_repeats):
-    #     #
-    #     #     t1 = timeit.default_timer()
-    #     #     labels = utils.run_LPA(unweighted_graph)
-    #     #     t2 = timeit.default_timer()
-    #     #     print('LPA Time: {}'.format(t2 - t1))
-    #     #     lpa_ans = getMetric(labels, true_labels)
-    #     #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-    #
-    #     # # Note: exp_weight=False gives slightly higher accuracy, need + 1 for Faiss
-    #     # # Leiden
-    #     t1 = timeit.default_timer()
-    #     weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
-    #     t2 = timeit.default_timer()
-    #     print('Graph Construction Time: {}'.format(t2 - t1))
-    #
-    #     # Mutual G_k
-    #     # weighted_graph = utils.fast_weighted_mutual_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
-    #
-    #     for i in range(n_repeats):
-    #
-    #         t1 = timeit.default_timer()
-    #         labels = utils.run_leiden(weighted_graph)
-    #         t2 = timeit.default_timer()
-    #         print('Leiden Time: {}'.format(t2 - t1))
-    #         lpa_ans = getMetric(labels, true_labels)
-    #         print(' '.join(f"{x:.4f}" for x in lpa_ans))
-    #
-    #     # # Louvain
-    #     # # This is G_k
-    #     # # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, :n_neighbors], distances[:, :n_neighbors], use_exp_weight=False,verbose=False)
-    #     #
-    #     # for i in range(n_repeats):
-    #     #
-    #     #     t1 = timeit.default_timer()
-    #     #     labels = utils.run_louvain(weighted_graph)
-    #     #     t2 = timeit.default_timer()
-    #     #     print('Louvain Time: {}'.format(t2 - t1))
-    #     #     lpa_ans = getMetric(labels, true_labels)
-    #     #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-    #
-    #     # DANE
-    #     t1 = timeit.default_timer()
-    #     dbs = cluprop.cluprop()
-    #     dbs.n_threads = n_threads
-    #
-    #     dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors)
-    #     t2 = timeit.default_timer()
-    #     print('DANE Time: {}'.format(t2 - t1))
-    #     lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
-    #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
-
-    """====================="""
-    """ Test param k_expand for DANE where k_expand > k"""
     n_threads = 8
-    n_trees = 8
     n_iters = 1
+    n_trees = 8
     k_max = 50
     leafSize = 50
-    dist="euclidean"
+    dist = "euclidean"
 
     indices = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
     distances = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
 
-    # print('shape of array :', indices.shape)
-    # print(indices[0, 0 : 10])
-    # print(distances[0, 0 : 10])
-
-    dbs = cluprop.cluprop()
-    dbs.n_threads = n_threads
-
-    n_neighbors_list = [5, 10, 15, 20, 25, 30]
-
-    # this param will significantly increase number of clusters (i.e. identifying more noise clusters)
-    # dbs.set_propagation_cutoff()
+    # n_neighbors_list = [10, 12, 14, 16, 18, 20]
+    n_neighbors_list = [12, 16, 20, 24, 28, 32]
 
     print(n_neighbors_list)
 
     for n_neighbors in n_neighbors_list:
 
-        print('n_neighbors: ', n_neighbors) # k' in the paper
+        print('n_neighbors: ', n_neighbors)
+        K = min(n_neighbors + 1, k_max) # Faiss, NNDescent: + 1
 
-        # clupig
+        # unweighted_graph = utils.fast_unweighted_sym_knng_igraph(indices[:, 1 : K], verbose=False)
+        #
+        # for i in range(n_repeats):
+        #
+        #     t1 = timeit.default_timer()
+        #     labels = utils.run_LPA(unweighted_graph)
+        #     t2 = timeit.default_timer()
+        #     print('LPA Time: {}'.format(t2 - t1))
+        #     lpa_ans = getMetric(labels, true_labels)
+        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
+
+        # # Note: exp_weight=False gives slightly higher accuracy, need + 1 for Faiss
+        # # Leiden
+        # t1 = timeit.default_timer()
+        # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
+        # t2 = timeit.default_timer()
+        # print('Graph Construction Time: {}'.format(t2 - t1))
+        #
+        # # Mutual G_k
+        # # weighted_graph = utils.fast_weighted_mutual_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
+        #
+        # for i in range(n_repeats):
+        #
+        #     t1 = timeit.default_timer()
+        #     labels = utils.run_leiden(weighted_graph)
+        #     t2 = timeit.default_timer()
+        #     print('Leiden Time: {}'.format(t2 - t1))
+        #     lpa_ans = getMetric(labels, true_labels)
+        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
+
+        # # Louvain
+        # # This is G_k
+        # # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, :n_neighbors], distances[:, :n_neighbors], use_exp_weight=False,verbose=False)
+        #
+        # for i in range(n_repeats):
+        #
+        #     t1 = timeit.default_timer()
+        #     labels = utils.run_louvain(weighted_graph)
+        #     t2 = timeit.default_timer()
+        #     print('Louvain Time: {}'.format(t2 - t1))
+        #     lpa_ans = getMetric(labels, true_labels)
+        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
+
+        # DANE
         t1 = timeit.default_timer()
+        dbs = cluprop.cluprop()
+        dbs.n_threads = n_threads
 
-        # G_K where K = ck
-        # NNDescent and Faiss consider the point itself, so need to start from 1
-        K = min(n_neighbors + 1, k_max)
         dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors)
         t2 = timeit.default_timer()
         print('DANE Time: {}'.format(t2 - t1))
         lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
         print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
+        # Remove noise
+        dane_label = np.asarray(dbs.labels_).copy()
+        n = len(dane_label)
+        unique_labels, counts = np.unique(dane_label, return_counts=True)
+        small_clusters = unique_labels[counts < 0.001 * n]
+        small_clusters = small_clusters[small_clusters != -1]
+        dane_label[np.isin(dane_label, small_clusters)] = -1
 
-        # G_kmax where ck <= K_max,
-        K = k_max
-        k_expand = min(2 * n_neighbors, k_max)
-        t1 = timeit.default_timer()
-        dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors, k_expand)
-        t2 = timeit.default_timer()
-        print('DANE Time with k_expand: {}'.format(t2 - t1))
-        lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
+        # mask = dane_label != -1
+        # dane_label = dane_label[mask]
+        # y_new = true_labels[mask]
+        # lpa_ans = getMetric(np.array(dane_label), y_new)
+
+        noise_ratio = np.mean(dane_label == -1)
+        # print("Number of noisy points:", num_noise)
+        # print("Noise ratio:", noise_ratio)
+        print(f"Noise percentage: {100 * noise_ratio:.2f}%")
+
+        lpa_ans = getMetric(np.array(dane_label), true_labels)
         print(' '.join(f"{x:.4f}" for x in lpa_ans))
+
+    """====================="""
+    """ Test param k_support for DANE where k_support > k"""
+    # n_threads = 8
+    # n_trees = 8
+    # n_iters = 1
+    # k_max = 50
+    # leafSize = 50
+    # dist="euclidean"
+    #
+    # indices = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
+    # distances = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
+    #
+    # dbs = cluprop.cluprop()
+    # dbs.n_threads = n_threads
+    #
+    # n_neighbors_list = [5, 10, 15, 20, 25, 30]
+    #
+    # print(n_neighbors_list)
+    #
+    # for n_neighbors in n_neighbors_list:
+    #
+    #     print('n_neighbors: ', n_neighbors) # k' in the paper
+    #
+    #     # clupig
+    #     t1 = timeit.default_timer()
+    #
+    #     # G_K where K = ck
+    #     # NNDescent and Faiss consider the point itself, so need to start from 1
+    #     K = min(n_neighbors + 1, k_max)
+    #     dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors)
+    #     t2 = timeit.default_timer()
+    #     print('DANE Time: {}'.format(t2 - t1))
+    #     lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
+    #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
+    #
+    #
+    #     # G_kmax where ck <= K_max,
+    #     K = k_max
+    #     k_support = min(2 * n_neighbors, k_max)
+    #     t1 = timeit.default_timer()
+    #     dbs.knn_dane(indices[:, 1 : K], distances[:, 1 : K], n_neighbors, k_support)
+    #     t2 = timeit.default_timer()
+    #     print('DANE Time with k_support: {}'.format(t2 - t1))
+    #     lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
+    #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
 
 
