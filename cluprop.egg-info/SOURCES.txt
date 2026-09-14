@@ -15,5 +15,6 @@ src/csr_graph.h
 src/header.h
 src/utilities.cpp
 src/utilities.h
+test/test.py
 test/test_cluprop_regression.py
 test/test_cluprop_validation.py

@@ -48,13 +48,9 @@ public:
     void set_prop_params(bool ver = false, string filename = "", int minClusterSize = 50){
         verbose = ver;
 
-        // Current not support multi-thread
-        // set_threads(numThreads);
-
         output = filename;
         min_cluster_size = minClusterSize;
     }
-
 
 
     void clear(){
@@ -95,17 +91,10 @@ public:
     // DANE with precomputed kNN
     void knn_dane(const Ref<const RowMajorMatrixXi> & , const Ref<const RowMajorMatrixXf> & , int, int = -1);
 
-
-    // Placeholder
-    // void cluprop::fit(const Ref<const RowMajorMatrixXf> & MATRIX_X, const string& knn_alg, int k, float c);
-
 private:
 
     void dane_(int, int);
     void dane_simplified_(int);
-
-    void prop_(int , string);
-
 };
 
 

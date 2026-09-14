@@ -200,23 +200,23 @@ if __name__ == '__main__':
         #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
         # Note: exp_weight=False gives slightly higher accuracy
-        # # Leiden
-        # t1 = timeit.default_timer()
-        # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
-        # t2 = timeit.default_timer()
-        # print('Graph Construction Time: {}'.format(t2 - t1))
-        #
-        # # Mutual G_k
-        # # weighted_graph = utils.fast_weighted_mutual_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
-        #
-        # for i in range(n_repeats):
-        #
-        #     t1 = timeit.default_timer()
-        #     labels = utils.run_leiden(weighted_graph)
-        #     t2 = timeit.default_timer()
-        #     print('Leiden Time: {}'.format(t2 - t1))
-        #     lpa_ans = getMetric(labels, true_labels)
-        #     print(' '.join(f"{x:.4f}" for x in lpa_ans))
+        # Leiden
+        t1 = timeit.default_timer()
+        weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
+        t2 = timeit.default_timer()
+        print('Graph Construction Time: {}'.format(t2 - t1))
+
+        # Mutual G_k
+        # weighted_graph = utils.fast_weighted_mutual_knng_igraph(indices[:, 1 : K], distances[:, 1 : K], use_exp_weight=False,verbose=False)
+
+        for i in range(n_repeats):
+
+            t1 = timeit.default_timer()
+            labels = utils.run_leiden(weighted_graph)
+            t2 = timeit.default_timer()
+            print('Leiden Time: {}'.format(t2 - t1))
+            lpa_ans = getMetric(labels, true_labels)
+            print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
         # # Louvain
         # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, :n_neighbors], distances[:, :n_neighbors], use_exp_weight=False,verbose=False)

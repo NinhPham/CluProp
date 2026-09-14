@@ -63,6 +63,79 @@ def mmap_bin(bin_path, num_rows, num_cols, dtype=np.float32):
     # return np.memmap(bin_path, dtype=dtype, mode='r', shape=(num_rows, num_cols)) # read-only mode
     return np.memmap(bin_path, dtype=dtype, mode='c', shape=(num_rows, num_cols)) # copy-on-write mode
 
+def knn_scale_distances(indices, distances, local_k=10):
+    """
+    Locally scale kNN distances.
+
+    scaled_d(i,j) = d(i,j) / sqrt(sigma_i * sigma_j)
+
+    where sigma_i is the distance from i to its local_k-th
+    nearest non-self neighbor.
+
+    Parameters
+    ----------
+    indices : ndarray, shape (n, k)
+        Neighbor indices.
+
+    distances : ndarray, shape (n, k)
+        Corresponding distances.
+
+    local_k : int
+        Neighbor rank used to estimate local scale.
+
+    Returns
+    -------
+    scaled_distances : ndarray, shape (n, k)
+
+    sigma : ndarray, shape (n,)
+        Local scale for every point.
+    """
+    indices = np.asarray(indices)
+    distances = np.asarray(distances, dtype=float)
+
+    n, k = indices.shape
+
+    if indices.shape != distances.shape:
+        raise ValueError("indices and distances must have the same shape")
+
+    sigma = np.empty(n, dtype=float)
+
+    # robustly find local_k-th NON-SELF neighbor
+    for i in range(n):
+        mask = indices[i] != i
+        d = distances[i][mask]
+
+        if len(d) == 0:
+            raise ValueError(f"Point {i} has no non-self neighbors")
+
+        rank = min(local_k, len(d)) - 1
+        sigma[i] = np.partition(d, rank)[rank]
+
+    # avoid zero local scales
+    positive = sigma[sigma > 0]
+
+    if len(positive) == 0:
+        raise ValueError("All local scales are zero")
+
+    eps_scale = np.median(positive)
+    sigma[sigma <= 0] = eps_scale
+
+    scaled = np.empty_like(distances, dtype=float)
+
+    for i in range(n):
+        for t, j in enumerate(indices[i]):
+            j = int(j)
+
+            if i == j:
+                scaled[i, t] = 0.0
+            else:
+                scaled[i, t] = (
+                        distances[i, t]
+                        / np.sqrt(sigma[i] * sigma[j])
+                )
+
+    return scaled, sigma
+
 #==========================================================================
 def getMetric(labels, true_labels):
 
@@ -416,44 +489,6 @@ def run_LPA(G):
 
 #============================================================================
 # networkx
-def nx_LPA(G, max_iter=100):
-
-    labels = {node: node for node in G.nodes()}
-    for _ in range(max_iter):
-        nodes = list(G.nodes())
-        random.shuffle(nodes)
-
-        updated = False
-        for node in nodes:
-            neighbor_labels = [labels[nbr] for nbr in G.neighbors(node)]
-            if not neighbor_labels:
-                continue
-            most_common = Counter(neighbor_labels).most_common(1)[0][0]
-            if labels[node] != most_common:
-                labels[node] = most_common
-                updated = True
-
-        if not updated:
-            break
-
-    clusters = {}
-    for node, label in labels.items():
-        clusters.setdefault(label, []).append(node)
-
-    nodes = list(G.nodes())
-    point_to_cluster = {}
-
-    for cluster_id, nodes_in_cluster in enumerate(clusters.values()):
-        for node in nodes_in_cluster:
-            point_to_cluster[node] = cluster_id
-
-    # Preserve original node order
-    labels = [point_to_cluster[node] for node in nodes]
-
-
-
-    return labels
-
 #============================================================================
 def getAcc_kNNG(exact, approx):
     n, k = np.shape(exact)
@@ -1203,140 +1238,66 @@ def fast_weighted_sym_knng_igraph_large_mem(indices, distances, use_exp_weight=F
     return G
 
 #============================================================================
-def nx_form_unweighted_KNN_graph_indices(indices):
+def nx_weighted_sym_knng(indices, distances, directed=False):
+    """
+    Build a NetworkX graph from kNN indices and distances.
 
-    n = len(indices)
+    Parameters
+    ----------
+    indices : ndarray, shape (n_samples, k)
+        indices[i, j] is the j-th neighbor of point i.
 
-    # 3. Build undirected graph
-    G = nx.Graph()
+    distances : ndarray, shape (n_samples, k)
+        distances[i, j] is the distance from point i
+        to indices[i, j].
+
+    directed : bool
+        If False, return an undirected nx.Graph.
+        If True, return nx.DiGraph.
+
+    Returns
+    -------
+    G : networkx.Graph or networkx.DiGraph
+        Edge attributes:
+            distance : original kNN distance
+            weight   : same as distance
+    """
+    indices = np.asarray(indices)
+    distances = np.asarray(distances)
+
+    if indices.shape != distances.shape:
+        raise ValueError("indices and distances must have the same shape.")
+
+    n = indices.shape[0]
+
+    G = nx.DiGraph() if directed else nx.Graph()
     G.add_nodes_from(range(n))
 
     for i in range(n):
-        for j in indices[i]:  # skip self-match
-            if i == j or j < 0:
-                continue
-            G.add_edge(i, j)
+        for j, dist in zip(indices[i], distances[i]):
+            j = int(j)
 
-    return G
-
-def nx_form_unweighted_sym_KNN_graph_indices(indices):
-
-    n = len(indices)
-
-    edge_set = set()
-    for i in range(n):
-        for j in indices[i]:
-            if i != j:
-                edge = tuple(sorted((i, j)))
-                edge_set.add(edge)
-
-    G = nx.Graph()
-    G.add_nodes_from(range(n))
-    G.add_edges_from(edge_set)
-
-    return G
-
-def nx_form_unweighted_mutual_KNN_graph_indices(indices):
-
-    n = len(indices)
-
-    # Build neighbor sets
-    neighbors = [set(row[row != i]) for i, row in enumerate(indices)]
-
-    # 3. Build undirected graph
-    G = nx.Graph()
-    G.add_nodes_from(range(n))
-
-    for i in range(n):
-        for j in neighbors[i]:
-            if i in neighbors[j] and i < j:
-                G.add_edge(i, j)
-
-    return G
-
-#============================================================================
-
-def nx_form_unweighted_KNN_graph(X, k=10, n_threads=8):
-
-    X = X.astype(np.float32)
-    n, d = X.shape
-
-    indices, distances = faiss_kNN(X, k + 1, n_threads=n_threads)
-
-    # 3. Build undirected graph
-    G = nx.Graph()
-    G.add_nodes_from(range(n))
-
-    for i in range(n):
-        for j in indices[i]:
+            # sklearn kneighbors may include the point itself
             if i == j:
                 continue
-            G.add_edge(i, j)
 
-    # print('number of nodes: ', G.number_of_nodes())
-    return G
+            dist = float(dist)
 
-def nx_form_unweighted_sym_KNN_graph(X, k=10, n_threads=8):
-
-    X = X.astype(np.float32)
-    n, d = X.shape
-
-    indices, distances = faiss_kNN(X, k + 1, n_threads=n_threads)
-
-    edge_set = set()
-
-    for i in range(n):
-        for j in indices[i]:
-            if i == j:
-                continue
-            # Add edge (min, max) to ensure symmetry
-            edge = tuple(sorted((i, j)))
-            edge_set.add(edge)
-
-
-    G = nx.Graph()
-    G.add_nodes_from(range(n))
-    G.add_edges_from(edge_set)
+            if G.has_edge(i, j):
+                # For an undirected kNN graph, i->j and j->i
+                # can both occur. Keep the smaller distance.
+                if dist < G[i][j]["distance"]:
+                    G[i][j]["distance"] = dist
+                    G[i][j]["weight"] = dist
+            else:
+                G.add_edge(
+                    i,
+                    j,
+                    distance=dist,
+                    weight=dist
+                )
 
     return G
-
-def nx_form_unweighted_mutual_KNN_graph(X, k=10, n_threads=8):
-
-    X = X.astype(np.float32)
-    n, d = X.shape
-
-    indices, distances = faiss_kNN(X, k + 1, n_threads=n_threads)
-
-    # Build neighbor sets
-    neighbors = [set(row[row != i]) for i, row in enumerate(indices)]
-
-    # 3. Build undirected graph
-    G = nx.Graph()
-    G.add_nodes_from(range(n))
-
-    for i in range(n):
-        for j in neighbors[i]:
-            if i in neighbors[j] and i < j:
-                G.add_edge(i, j)
-
-    return G
-
-#===========================================================================================================
-
-def nx_form_approx_unweighted_sym_KNN_graph_Faiss(X, k=10, n_list = 100, n_probe = 10, n_threads=8):
-    """
-    Build an undirected k-NN graph using FAISS for neighbor search.
-    X must be a float32 NumPy array.
-    """
-
-    X = X.astype(np.float32)
-    n, d = X.shape
-
-    indices, distances = faiss_approx_kNN_IVF(X, k + 1, n_list=n_list, n_probe=n_probe, n_threads=n_threads)
-
-    # 3. Build undirected graph
-    return build_sym_knn_graph_parallel(indices, n_jobs=n_threads)
-
 #===========================================================================================================
 
 def density_peak_eps(X, dc=None, percentile=2.0, top_k=5, plot_decision=False):

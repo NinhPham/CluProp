@@ -48,7 +48,6 @@ python -m pip install .
 ```python
 model = cluprop.cluprop()
 model.n_threads = n_threads
-model.clear()
 
 model.knn_dane(indices, distances, k)
 labels = model.labels_
