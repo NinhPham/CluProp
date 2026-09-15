@@ -130,7 +130,8 @@ src/cluprop.h              CluProp class and public C++ API
 src/csr_graph.*            Symmetric k-NN graph construction and CSR storage
 python/python_wrapper.cpp  pybind11 bindings
 setup.py                   Python extension build configuration
-test/                      Benchmark and experiment scripts
+benchmarks/                Benchmark and experiment scripts
+datasets/                  Some small datasets from UCI       
 ```
 
 ## CMake
