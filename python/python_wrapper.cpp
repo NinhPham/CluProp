@@ -28,6 +28,16 @@ PYBIND11_MODULE(cluprop, m) { // Must be the same name with class Dbscan
         "Minimum initial cluster size.")
 
         .def_property(
+        "verbose",
+        [](const cluprop& self) {
+            return self.verbose;
+        },
+        [](cluprop& self, bool value) {
+            self.set_verbose(value);
+        },
+        "verbose.")
+
+        .def_property(
             "n_threads",
             [](const cluprop& self) {
                 return self.n_threads;

@@ -43,14 +43,15 @@ t1 = timeit.default_timer()
 labels = utils.run_leiden(weighted_graph)
 print('Leiden Time: {}'.format(timeit.default_timer() - t1))
 acc = utils.getMetric(labels, y)
-print(f"#clusters: {int(acc[0])}, NMI: {acc[1]:.4f}, AMI: {acc[2]:.4f}, ARI: {acc[3]:.4f}")
+print(f"#clusters: {int(acc[0])}, NMI: {acc[1]:.4f}, ARI: {acc[2]:.4f}, AMI: {acc[3]:.4f}")
 
 # DANE
 model = cluprop.cluprop()
 model.n_threads = n_threads
+model.verbose = True
 K = 12 # K < k_max
 t1 = timeit.default_timer()
 model.knn_dane(indices[:, 1 : K], distances[:, 1 : K], K)
 print('Dane Time: {}'.format(timeit.default_timer() - t1))
 acc = utils.getMetric(np.array(model.labels_), y)
-print(f"#clusters: {int(acc[0])}, NMI: {acc[1]:.4f}, AMI: {acc[2]:.4f}, ARI: {acc[3]:.4f}")
+print(f"#clusters: {int(acc[0])}, NMI: {acc[1]:.4f}, ARI: {acc[2]:.4f}, AMI: {acc[3]:.4f}")

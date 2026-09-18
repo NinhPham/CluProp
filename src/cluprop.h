@@ -45,11 +45,8 @@ public:
 
     cluprop() = default;
 
-    void set_prop_params(bool ver = false, string filename = "", int minClusterSize = 50){
+    void set_verbose(bool ver){
         verbose = ver;
-
-        output = filename;
-        min_cluster_size = minClusterSize;
     }
 
 

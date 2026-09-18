@@ -19,7 +19,7 @@ os.environ["FAISS_NUM_THREADS"] = "8"
 # import sDbscan
 import faiss
 import hdbscan
-import sDbscan
+# import sDbscan
 import numpy as np
 import math
 import igraph as ig
