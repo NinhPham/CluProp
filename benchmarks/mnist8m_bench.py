@@ -123,27 +123,6 @@ if __name__ == '__main__':
         lpa_ans = getMetric(np.array(dbs.labels_), true_labels)
         print(' '.join(f"{x:.4f}" for x in lpa_ans))
 
-        # Remove noise
-        dane_label = np.asarray(dbs.labels_).copy()
-        n = len(dane_label)
-        unique_labels, counts = np.unique(dane_label, return_counts=True)
-        small_clusters = unique_labels[counts < 0.001 * n]
-        small_clusters = small_clusters[small_clusters != -1]
-        dane_label[np.isin(dane_label, small_clusters)] = -1
-
-        # mask = dane_label != -1
-        # dane_label = dane_label[mask]
-        # y_new = true_labels[mask]
-        # lpa_ans = getMetric(np.array(dane_label), y_new)
-
-        noise_ratio = np.mean(dane_label == -1)
-        # print("Number of noisy points:", num_noise)
-        # print("Noise ratio:", noise_ratio)
-        print(f"Noise percentage: {100 * noise_ratio:.2f}%")
-
-        lpa_ans = getMetric(np.array(dane_label), true_labels)
-        print(' '.join(f"{x:.4f}" for x in lpa_ans))
-
         """ Leiden """
         # t1 = timeit.default_timer()
         # weighted_graph = utils.fast_weighted_sym_knng_igraph(indices[:, 1:K], distances[:, 1:K], use_exp_weight=False, verbose = True) # fastest - sometime not work for k = 50
