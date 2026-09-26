@@ -161,6 +161,8 @@ if __name__ == '__main__':
 
     indices = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
     distances = np.load(savePath / f"nndescent_{n_iters}_{n_trees}_{leafSize}_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
+    # Clean up: - 10^-6 < distance < 0 ==> distance = 0
+    distances = utils.clean_knn_distances(indices, distances)
 
     # n_neighbors_list = [10, 12, 14, 16, 18, 20]
     n_neighbors_list = [12, 16, 20, 24, 28, 32]

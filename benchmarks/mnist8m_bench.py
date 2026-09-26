@@ -99,6 +99,9 @@ if __name__ == '__main__':
     distances = distances.astype(np.float32)
     print(distances.shape)
 
+    # Clean up: - 10^-6 < distance < 0 ==> distance = 0
+    distances = utils.clean_knn_distances(indices, distances)
+
     # n_neighbors_list = [10, 20, 30, 40, 50]
     n_neighbors_list = [50, 60, 70, 80]
     print(n_neighbors_list)

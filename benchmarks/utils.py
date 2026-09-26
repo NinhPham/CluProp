@@ -56,9 +56,33 @@ import timeit
 import gc
 from concurrent.futures import ThreadPoolExecutor
 
-def print_array(A):
-    for row in A:
-        print(' '.join(f"{val:.3f}" for val in row))
+def clean_knn_distances(indices, distances, tol=1e-6):
+    distances = distances.copy()
+
+    # Check invalid numerical values
+    if not np.all(np.isfinite(distances)):
+        raise ValueError("kNN distances contain NaN or Inf")
+
+    # Large negative distances indicate a real problem
+    bad = distances < -tol
+    if np.any(bad):
+        rows, cols = np.where(bad)
+
+        print("Found significantly negative distances:")
+        for i, t in zip(rows[:10], cols[:10]):
+            print(
+                f"point={i}, neighbor={indices[i,t]}, "
+                f"distance={distances[i,t]}"
+            )
+
+        raise ValueError(
+            f"{np.sum(bad)} distances are < {-tol}"
+        )
+
+    # Small negative distances are floating-point noise
+    distances[distances < 0] = 0.0
+
+    return distances
 def mmap_bin(bin_path, num_rows, num_cols, dtype=np.float32):
     # return np.memmap(bin_path, dtype=dtype, mode='r', shape=(num_rows, num_cols)) # read-only mode
     return np.memmap(bin_path, dtype=dtype, mode='c', shape=(num_rows, num_cols)) # copy-on-write mode

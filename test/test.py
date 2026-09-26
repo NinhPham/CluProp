@@ -34,6 +34,13 @@ indices, distances = NNDescent(X, n_neighbors=k_max, random_state=None,
 kNN_time = timeit.default_timer() - t1
 print(f"RPT: metric={dist} n_trees={n_trees:2d} n_iters={n_iters:2d} leafSize={leafSize:2d} time={kNN_time:.4f}s")
 
+from pathlib import Path
+k_max = 200
+path = Path("~/Work/Datasets/Clustering/").expanduser()
+savePath = path / "mnist70K_output"
+indices = np.load(savePath / f"exact_{dist}_{k_max}_indices.npy")    # shape: (n, k), dtype: int64
+distances = np.load(savePath / f"exact_{dist}_{k_max}_distances.npy")  # shape: (n, k), dtype: float32
+
 # Leiden
 K = 8
 t1 = timeit.default_timer()
@@ -51,7 +58,7 @@ model.n_threads = n_threads
 model.verbose = True
 K = 12 # K < k_max
 t1 = timeit.default_timer()
-model.knn_dane(indices[:, 1 : K], distances[:, 1 : K], K)
+model.knn_dane(indices[:, 1 : K], distances[:, 1 : K], K-1)
 print('Dane Time: {}'.format(timeit.default_timer() - t1))
 acc = utils.getMetric(np.array(model.labels_), y)
 print(f"#clusters: {int(acc[0])}, NMI: {acc[1]:.4f}, ARI: {acc[2]:.4f}, AMI: {acc[3]:.4f}")
